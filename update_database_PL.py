@@ -3,10 +3,10 @@ __author__ = 'MOLTRES'
 import os
 import datetime
 from sys import stdout
-import ipdb
-import pandas as pd
-from futuresdatabase import FuturesDatabase
 
+import pandas as pd
+
+from util.futuresdatabase import FuturesDatabase
 
 
 table_name_list = ['ftkgc',

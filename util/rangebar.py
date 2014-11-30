@@ -1,6 +1,6 @@
 
-from instrument import InstrumentTraits
-from hloc import CurrentHLOC
+from util.instrument import InstrumentTraits
+from util.hloc import CurrentHLOC
 
 
 class RangeBar:

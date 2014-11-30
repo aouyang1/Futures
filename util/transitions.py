@@ -8,16 +8,18 @@ Transition class containing the functions for the next state in the finite state
 - 'check_strategy_transitions', check if strategy needs to enter/exit
 """
 
-
 import pandas as pd
 from pandas.tseries.offsets import *
-from backtest import Backtest
-from futuresdatabase import FuturesDatabase
-from rangebar import RangeBar
-from dailytick import DailyTick
-from order import Order
-from indicators import *
-from strategies import *
+
+from util.backtest import Backtest
+from util.futuresdatabase import FuturesDatabase
+from util.rangebar import RangeBar
+from util.dailytick import DailyTick
+from util.order import Order
+from util.market import Market
+from util.indicators import *
+from util.strategies import *
+
 
 class Transitions:
 
@@ -37,8 +39,9 @@ class Transitions:
         bt.range_bar = RangeBar(instr_name, RANGE)
         bt.daily_tick = DailyTick(None, 0)
         bt.order = Order()
-        bt.indicators['FisherTransform'] = FisherTransform(bt, 15)
-        bt.indicators['FTD'] = FTD(bt, 2, 15)
+        bt.market = Market()
+        bt.indicators['FisherTransform'] = FisherTransform(bt, bt.range_bar.Close, 15)
+        bt.indicators['LinRegSlope'] = LinRegSlope(bt, bt.indicators['FisherTransform'].val, 2)
         bt.strategies['FT_Quicky_Base'] = FT_Quicky_Base(bt, PL=17, offset=3, FTdthresh=0.1, FTthresh=2.5, maxBars=1)
 
         new_state = "load_daily_data"
@@ -76,7 +79,8 @@ class Transitions:
             tick = bt.daily_tick.df.ix[bt.daily_tick.cnt]
             bt.range_bar.tick_list.append(tick['Last'])
             # check for open orders and determine if they need to be filled
-            # check_order()
+            if bt.market.position != "FLAT":
+                bt.order.update()
 
             # compute range bar HLOC
             if bt.daily_tick.cnt == 0:  # first tick of day session
@@ -110,20 +114,21 @@ class Transitions:
                 bt.start_stamp_utc += 2*Day()
 
             new_state = "load_daily_data"
-            print "{} bars".format(len(bt.range_bar.Close))
 
         return new_state, bt
 
     @staticmethod
     def compute_indicators_transitions(bt):
         bt.indicators['FisherTransform'].on_bar_update()
+        bt.indicators['LinRegSlope'].on_bar_update()
+
         new_state = "check_strategy"
         return new_state, bt
 
     @staticmethod
     def check_strategy_transitions(bt):
         new_state = "search_for_event"
-
+        bt.strategies['FT_Quicky_Base'].on_bar_update()
         return new_state, bt
 
 

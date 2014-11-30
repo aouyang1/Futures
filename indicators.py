@@ -1,12 +1,12 @@
 __author__ = 'aouyang1'
 
 from math import log
-
+import numpy as np
 
 class FisherTransform:
 
-    def __init__(self, range_bar, period):
-        self.range_bar = range_bar
+    def __init__(self, backtest, period):
+        self.range_bar = backtest.range_bar
         self.period = period
         self.val = []           # 0 index is newest
         self.tmp_series = []    # 0 index is newest
@@ -42,6 +42,18 @@ class FisherTransform:
         fish_value = 0.5 * log((1 + tmp_value) / (1 - tmp_value)) + 0.5 * fish_prev
         self.val.insert(0, fish_value)
 
+
+class FTD:
+
+    def __init__(self, backtest, N, period):
+        self.range_bar = backtest.range_bar
+        self.N = N
+        self.period = period
+        self.val = []
+
+    def on_bar_update(self):
+        # TODO Implement Fisher transform derivative
+        pass
 
 
 

@@ -15,7 +15,9 @@ from backtest import Backtest
 from futuresdatabase import FuturesDatabase
 from rangebar import RangeBar
 from dailytick import DailyTick
+from order import Order
 from indicators import *
+from strategies import *
 
 class Transitions:
 
@@ -34,7 +36,10 @@ class Transitions:
         bt.futures_db = FuturesDatabase()
         bt.range_bar = RangeBar(instr_name, RANGE)
         bt.daily_tick = DailyTick(None, 0)
-        bt.indicators['FisherTransform'] = FisherTransform(bt.range_bar, 15)
+        bt.order = Order()
+        bt.indicators['FisherTransform'] = FisherTransform(bt, 15)
+        bt.indicators['FTD'] = FTD(bt, 2, 15)
+        bt.strategies['FT_Quicky_Base'] = FT_Quicky_Base(bt, PL=17, offset=3, FTdthresh=0.1, FTthresh=2.5, maxBars=1)
 
         new_state = "load_daily_data"
 

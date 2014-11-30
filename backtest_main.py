@@ -2,14 +2,14 @@ __author__ = 'Austin Ouyang'
 
 from statemachine import StateMachine
 from transitions import Transitions
-
+import time
 
 if __name__ == "__main__":
 
     instr_name = 'GC'
     RANGE = 10
-    init_day = '2014-05-07 17:00:00'
-    final_day = '2014-05-09 16:59:59'
+    init_day = '2014-05-01 17:00:00'
+    final_day = '2014-05-02 16:59:59'
 
     m = StateMachine()
     t = Transitions()       # next state functions for state machine
@@ -24,6 +24,9 @@ if __name__ == "__main__":
 
     m.set_start("initialize")
 
+    start_time = time.time()
     m.run((instr_name, RANGE, init_day, final_day))
+    elapsed_time = time.time() - start_time
+    print "Total time: {}".format(elapsed_time)
 
     print 'Done'

@@ -1,13 +1,7 @@
-import pandas as pd
 
+from instrument import InstrumentTraits
+from hloc import CurrentHLOC
 
-TickSizeDict = {'GC': 0.1,
-                'CL': 0.01,
-                'ZB': 0.03125}
-
-TickValueDict = {'GC': 10.0,
-                 'CL': 10.0,
-                 'ZB': 31.25}
 
 class RangeBar:
 
@@ -15,19 +9,18 @@ class RangeBar:
         self.curr = CurrentHLOC()
         self.instr = InstrumentTraits(instrument)
         self.RANGE = RANGE
-        self.High = []
-        self.Low = []
-        self.Open = []
-        self.Close = []
-        self.Volume = []
-        self.CloseTime = []
-        self.bar_tick_list = []
-        self.TickRecord = {}
-        self.bar_cnt = 0
+        self.High = []      # 0 index is newest data
+        self.Low = []       # 0 index is newest data
+        self.Open = []      # 0 index is newest data
+        self.Close = []     # 0 index is newest data
+        self.Volume = []    # 0 index is newest data
+        self.CloseTime = [] # 0 index is newest data
+        self.tick_list = []
+        self.TickRecord = {} # self.cnt index is newest data
+        self.cnt = 0
         self.event_found = False
 
-
-    def init_bar(self, tick):
+    def init(self, tick):
         self.curr.High = tick['Last']
         self.curr.Low = tick['Last']
         self.curr.Open = tick['Last']
@@ -35,23 +28,21 @@ class RangeBar:
         self.curr.Volume = tick['Volume']
         self.curr.CloseTime = tick.name
 
-
-    def close_bar(self):
+    def close(self):
         self.High.insert(0, self.curr.High)
         self.Low.insert(0, self.curr.Low)
         self.Open.insert(0, self.curr.Open)
         self.Close.insert(0, self.curr.Close)
         self.Volume.insert(0, self.curr.Volume)
         self.CloseTime.insert(0, self.curr.CloseTime)
-        self.TickRecord[self.bar_cnt] = self.bar_tick_list
-        self.bar_cnt += 1
-        self.bar_tick_list = []
+        self.TickRecord[self.cnt] = self.tick_list
+        self.cnt += 1
+        self.tick_list = []
         self.event_found = True
         # calculate new indicator values
         # check for strategy entry
 
-
-    def update_range_bar(self, tick):
+    def update(self, tick):
 
         self.curr.CloseTime = tick.name
         self.curr.Volume += tick['Volume']
@@ -61,7 +52,7 @@ class RangeBar:
             while round((tick['Last'] - self.curr.Low)/self.instr.TICK_SIZE) > self.RANGE:
                 self.curr.High = self.curr.Low + self.RANGE*self.instr.TICK_SIZE
                 self.curr.Close = self.curr.High
-                self.close_bar()
+                self.close()
 
                 self.curr.Low = self.Close[0] + self.instr.TICK_SIZE
                 self.curr.Open = self.curr.Low
@@ -75,7 +66,7 @@ class RangeBar:
             while round((self.curr.High - tick['Last'])/self.instr.TICK_SIZE) > self.RANGE:
                 self.curr.Low = self.curr.High - self.RANGE*self.instr.TICK_SIZE
                 self.curr.Close = self.curr.Low
-                self.close_bar()
+                self.close()
 
                 self.curr.High = self.Close[0] - self.instr.TICK_SIZE
                 self.curr.Open = self.curr.High
@@ -93,27 +84,10 @@ class RangeBar:
         else:                                                       # update current close of bar
             self.curr.Close = tick['Last']
 
-
-
-
-
     def get_ticks_in_bar(self, bars_from_current):
-        return self.TickRecord[self.bar_cnt - bars_from_current - 1]
+        return self.TickRecord[self.cnt - bars_from_current - 1]
 
 
-class CurrentHLOC:
-
-    def __init__(self):
-        self.High = 0
-        self.Low = 0
-        self.Open = 0
-        self.Close = 0
-        self.Volume = 0
-        self.CloseTime = pd.Timestamp('01-01-1960 00:00:00')
 
 
-class InstrumentTraits:
 
-    def __init__(self, instrument):
-        self.TICK_SIZE = TickSizeDict[instrument]
-        self.TICK_VALUE = TickValueDict[instrument]

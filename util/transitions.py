@@ -10,7 +10,7 @@ Transition class containing the functions for the next state in the finite state
 
 import pandas as pd
 from pandas.tseries.offsets import *
-
+import ipdb
 from util.backtest import Backtest
 from util.futuresdatabase import FuturesDatabase
 from util.rangebar import RangeBar
@@ -19,7 +19,7 @@ from util.order import Order
 from util.market import Market
 from util.indicators import *
 from util.strategies import *
-
+from util.trades import Trades
 
 class Transitions:
 
@@ -43,6 +43,7 @@ class Transitions:
         bt.indicators['FisherTransform'] = FisherTransform(bt, bt.range_bar.Close, 15)
         bt.indicators['LinRegSlope'] = LinRegSlope(bt, bt.indicators['FisherTransform'].val, 2)
         bt.strategies['FT_Quicky_Base'] = FT_Quicky_Base(bt, PL=17, offset=3, FTdthresh=0.1, FTthresh=2.5, maxBars=1)
+        bt.trades = Trades()
 
         new_state = "load_daily_data"
 
@@ -67,7 +68,7 @@ class Transitions:
             new_state = "search_for_event"
 
         else:
-            new_state = "finished"
+            new_state = "show_results"
 
 
         return new_state, bt
@@ -76,22 +77,22 @@ class Transitions:
     def search_for_event_transitions(bt):
 
         if bt.daily_tick.cnt < bt.daily_tick.df.shape[0]:
-            tick = bt.daily_tick.df.ix[bt.daily_tick.cnt]
-            bt.range_bar.tick_list.append(tick['Last'])
+            bt.tick = bt.daily_tick.df.ix[bt.daily_tick.cnt]
+            bt.range_bar.tick_list.append(bt.tick['Last'])
             # check for open orders and determine if they need to be filled
             if bt.market.position != "FLAT":
-                bt.order.update()
+                bt.order.update(bt)
 
             # compute range bar HLOC
             if bt.daily_tick.cnt == 0:  # first tick of day session
-                bt.range_bar.init(tick)
+                bt.range_bar.init(bt.tick)
 
             elif bt.daily_tick.cnt == (bt.daily_tick.df.shape[0]-1):  # last tick of day session
-                bt.range_bar.update(tick)
+                bt.range_bar.update(bt.tick)
                 bt.range_bar.close()
 
             else:  # normal range bar check and update
-                bt.range_bar.update(tick)
+                bt.range_bar.update(bt.tick)
 
             # next state logic
             if bt.range_bar.event_found:
@@ -131,6 +132,13 @@ class Transitions:
         bt.strategies['FT_Quicky_Base'].on_bar_update()
         return new_state, bt
 
+    @staticmethod
+    def show_results_transitions(bt):
+        col = ['market_pos', 'entry_price', 'exit_price', 'entry_time', 'exit_time', 'exit_name']
+        print bt.trades.trade_log[col]
+        #ipdb.set_trace()
+        new_state = "finished"
+        return new_state, bt
 
     def timestamp_to_SQLstring(self, timestamp):
         return str(timestamp)[:-6]

@@ -12,6 +12,7 @@ class Trades:
         self.entry_time = []
         self.exit_time = []
         self.exit_name = []
+        self.profit = []
         self.curr = CurrentTrade()
 
     def add_trade(self):
@@ -21,12 +22,16 @@ class Trades:
         self.entry_time.append(self.curr.entry_time.tz_localize('utc').tz_convert('US/Central'))
         self.exit_time.append(self.curr.exit_time.tz_localize('utc').tz_convert('US/Central'))
         self.exit_name.append(self.curr.exit_name)
+        self.profit.append(self.curr.profit)
+
+    def convert_to_dataframe(self):
         self.trade_log = DataFrame({'market_pos': self.market_pos,
                                     'entry_price': self.entry_price,
                                     'exit_price': self.exit_price,
                                     'entry_time': self.entry_time,
                                     'exit_time': self.exit_time,
-                                    'exit_name': self.exit_name})
+                                    'exit_name': self.exit_name,
+                                    'profit': self.profit})
 
 
 class CurrentTrade:
@@ -38,4 +43,5 @@ class CurrentTrade:
         self.entry_time = None
         self.exit_time = None
         self.exit_name = None
+        self.profit = None
 

@@ -134,7 +134,9 @@ class Transitions:
 
     @staticmethod
     def show_results_transitions(bt):
-        col = ['market_pos', 'entry_price', 'exit_price', 'entry_time', 'exit_time', 'exit_name']
+        bt.trades.convert_to_dataframe()
+        bt.trades.trade_log['cum_prof'] = np.cumsum(bt.trades.trade_log['profit'])
+        col = ['market_pos', 'entry_price', 'exit_price', 'entry_time', 'exit_time', 'exit_name', 'profit', 'cum_prof']
         print bt.trades.trade_log[col]
         #ipdb.set_trace()
         new_state = "finished"

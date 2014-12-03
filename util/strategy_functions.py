@@ -13,36 +13,36 @@ def cross_below(dataseries, threshold):
     else:
         return dataseries[0] < threshold and dataseries[1] >= threshold
 
-def enter_long_limit(bt, limit_price):
-    bt.order.limit_price = limit_price
-    bt.order.order_action = "BUY"
-    bt.order.order_state = "WORKING"
-    bt.order.order_type = "LIMIT"
-    bt.market.position = "LONG"
+def enter_long_limit(strat, limit_price):
+    strat.order.limit_price = limit_price
+    strat.order.order_action = "BUY"
+    strat.order.order_state = "WORKING"
+    strat.order.order_type = "LIMIT"
+    strat.market.position = "LONG"
 
-def enter_short_limit(bt, limit_price):
-    bt.order.limit_price = limit_price
-    bt.order.order_action = "SELL"
-    bt.order.order_state = "WORKING"
-    bt.order.order_type = "LIMIT"
-    bt.market.position = "SHORT"
+def enter_short_limit(strat, limit_price):
+    strat.order.limit_price = limit_price
+    strat.order.order_action = "SELL"
+    strat.order.order_state = "WORKING"
+    strat.order.order_type = "LIMIT"
+    strat.market.position = "SHORT"
 
-def set_stop_loss(bt, ticks):
-    if bt.order.order_action == "SELL":
-        bt.order.stop_loss = bt.order.limit_price + bt.range_bar.instr.TICK_SIZE*ticks
-    elif bt.order.order_action == "BUY":
-        bt.order.stop_loss = bt.order.limit_price - bt.range_bar.instr.TICK_SIZE*ticks
+def set_stop_loss(strat):
+    if strat.order.order_action == "SELL":
+        strat.order.stop_loss = strat.order.limit_price + strat.bt.range_bar.instr.TICK_SIZE*strat.PL
+    elif strat.order.order_action == "BUY":
+        strat.order.stop_loss = strat.order.limit_price - strat.bt.range_bar.instr.TICK_SIZE*strat.PL
     else:
         print "order does not exist"
 
-def set_profit_target(bt, ticks):
-    if bt.order.order_action == "SELL":
-        bt.order.profit_target = bt.order.limit_price - bt.range_bar.instr.TICK_SIZE*ticks
-    elif bt.order.order_action == "BUY":
-        bt.order.profit_target = bt.order.limit_price + bt.range_bar.instr.TICK_SIZE*ticks
+def set_profit_target(strat):
+    if strat.order.order_action == "SELL":
+        strat.order.profit_target = strat.order.limit_price - strat.bt.range_bar.instr.TICK_SIZE*strat.PL
+    elif strat.order.order_action == "BUY":
+        strat.order.profit_target = strat.order.limit_price + strat.bt.range_bar.instr.TICK_SIZE*strat.PL
     else:
         print "order does not exist"
 
-def cancel_order(bt):
-    bt.market.position = "FLAT"
-    bt.order.reset()
+def cancel_order(strat):
+    strat.market.position = "FLAT"
+    strat.order.reset()

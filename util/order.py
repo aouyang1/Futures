@@ -20,84 +20,84 @@ class Order:
         self.stop_loss = None
         self.profit_target = None
 
-    def update(self, backtest):
+    def update(self, backtest, strat):
         if self.order_state == "WORKING":
             # looking to fill limit order
             if self.order_action == "BUY":
                 if backtest.tick['Last'] <= self.limit_price:
                     self.order_state = "FILLED"
-                    backtest.trades.curr.entry_time = backtest.tick.name
+                    strat.trades.curr.entry_time = backtest.tick.name
             elif self.order_action == "SELL":
                 if backtest.tick['Last'] >= self.limit_price:
                     self.order_state = "FILLED"
-                    backtest.trades.curr.entry_time = backtest.tick.name
+                    strat.trades.curr.entry_time = backtest.tick.name
 
         elif self.order_state == "FILLED":
             # looking for profit target to hit, stop loss to hit, or eof day
             curr_time = backtest.tick.name.tz_localize('utc').tz_convert('US/Central')
             if self.order_action == "BUY":
                 if backtest.tick['Last'] >= self.profit_target:
-                    backtest.trades.curr.exit_time = backtest.tick.name
-                    backtest.trades.curr.exit_price = self.profit_target
-                    backtest.trades.curr.exit_name = 'Profit target'
-                    self.calculate_profit(backtest)
-                    backtest.trades.add_trade()
-                    backtest.market.position = "FLAT"
+                    strat.trades.curr.exit_time = backtest.tick.name
+                    strat.trades.curr.exit_price = self.profit_target
+                    strat.trades.curr.exit_name = 'Profit target'
+                    self.calculate_profit(backtest, strat)
+                    strat.trades.add_trade()
+                    strat.market.position = "FLAT"
                     self.reset()
 
                 elif backtest.tick['Last'] <= self.stop_loss:
-                    backtest.trades.curr.exit_time = backtest.tick.name
-                    backtest.trades.curr.exit_price = backtest.tick['Last']
-                    backtest.trades.curr.exit_name = 'Stop loss'
-                    self.calculate_profit(backtest)
-                    backtest.trades.add_trade()
-                    backtest.market.position = "FLAT"
+                    strat.trades.curr.exit_time = backtest.tick.name
+                    strat.trades.curr.exit_price = backtest.tick['Last']
+                    strat.trades.curr.exit_name = 'Stop loss'
+                    self.calculate_profit(backtest, strat)
+                    strat.trades.add_trade()
+                    strat.market.position = "FLAT"
                     self.reset()
 
                 elif curr_time.hour == 16 and curr_time.minute == 14 and 30 <= curr_time.second <= 59:
-                    backtest.trades.curr.exit_time = backtest.tick.name
-                    backtest.trades.curr.exit_price = backtest.tick['Last']
-                    backtest.trades.curr.exit_name = 'Exit on close'
-                    self.calculate_profit(backtest)
-                    backtest.trades.add_trade()
-                    backtest.market.position = "FLAT"
+                    strat.trades.curr.exit_time = backtest.tick.name
+                    strat.trades.curr.exit_price = backtest.tick['Last']
+                    strat.trades.curr.exit_name = 'Exit on close'
+                    self.calculate_profit(backtest, strat)
+                    strat.trades.add_trade()
+                    strat.market.position = "FLAT"
                     self.reset()
 
             elif self.order_action == "SELL":
                 if backtest.tick['Last'] <= self.profit_target:
-                    backtest.trades.curr.exit_time = backtest.tick.name
-                    backtest.trades.curr.exit_price = self.profit_target
-                    backtest.trades.curr.exit_name = 'Profit target'
-                    self.calculate_profit(backtest)
-                    backtest.trades.add_trade()
-                    backtest.market.position = "FLAT"
+                    strat.trades.curr.exit_time = backtest.tick.name
+                    strat.trades.curr.exit_price = self.profit_target
+                    strat.trades.curr.exit_name = 'Profit target'
+                    self.calculate_profit(backtest, strat)
+                    strat.trades.add_trade()
+                    strat.market.position = "FLAT"
                     self.reset()
 
                 elif backtest.tick['Last'] >= self.stop_loss:
-                    backtest.trades.curr.exit_time = backtest.tick.name
-                    backtest.trades.curr.exit_price = backtest.tick['Last']
-                    backtest.trades.curr.exit_name = 'Stop loss'
-                    self.calculate_profit(backtest)
-                    backtest.trades.add_trade()
-                    backtest.market.position = "FLAT"
+                    strat.trades.curr.exit_time = backtest.tick.name
+                    strat.trades.curr.exit_price = backtest.tick['Last']
+                    strat.trades.curr.exit_name = 'Stop loss'
+                    self.calculate_profit(backtest, strat)
+                    strat.trades.add_trade()
+                    strat.market.position = "FLAT"
                     self.reset()
 
                 elif curr_time.hour == 16 and curr_time.minute == 14 and 30 <= curr_time.second <= 59:
-                    backtest.trades.curr.exit_time = backtest.tick.name
-                    backtest.trades.curr.exit_price = backtest.tick['Last']
-                    backtest.trades.curr.exit_name = 'Exit on close'
-                    self.calculate_profit(backtest)
-                    backtest.trades.add_trade()
-                    backtest.market.position = "FLAT"
+                    strat.trades.curr.exit_time = backtest.tick.name
+                    strat.trades.curr.exit_price = backtest.tick['Last']
+                    strat.trades.curr.exit_name = 'Exit on close'
+                    self.calculate_profit(backtest, strat)
+                    strat.trades.add_trade()
+                    strat.market.position = "FLAT"
                     self.reset()
 
 
-    def calculate_profit(self, backtest):
+    def calculate_profit(self, backtest, strat):
         tick_size = backtest.range_bar.instr.TICK_SIZE
         tick_value = backtest.range_bar.instr.TICK_VALUE
-        entry_price = backtest.trades.curr.entry_price
-        exit_price = backtest.trades.curr.exit_price
+        entry_price = strat.trades.curr.entry_price
+        exit_price = strat.trades.curr.exit_price
         if self.order_action == "BUY":
-            backtest.trades.curr.profit = round((exit_price - entry_price)/tick_size)*tick_value
+            strat.trades.curr.profit = round((exit_price - entry_price)/tick_size)*tick_value
         elif self.order_action == "SELL":
-            backtest.trades.curr.profit = -round((exit_price - entry_price)/tick_size)*tick_value
+            strat.trades.curr.profit = -round((exit_price - entry_price)/tick_size)*tick_value

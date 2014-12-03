@@ -1,11 +1,19 @@
 __author__ = 'aouyang1'
 
 from util.strategy_functions import *
+from util.order import Order
+from util.market import Market
+from util.indicators import *
+from util.trades import Trades
 
 class FT_Quicky_Base:
 
-    def __init__(self, backtest, PL, offset, FTdthresh, FTthresh, maxBars):
+    def __init__(self, backtest, indicators, PL, offset, FTdthresh, FTthresh, maxBars):
         self.bt = backtest
+        self.indicators = indicators
+        self.order = Order()
+        self.market = Market()
+        self.trades = Trades()
         self.PL = PL
         self.offset = offset
         self.FTdthresh = FTdthresh
@@ -15,8 +23,8 @@ class FT_Quicky_Base:
         self.bars_passed = 0
 
     def on_bar_update(self):
-        FT = self.bt.indicators['FisherTransform'].val
-        FTd = self.bt.indicators['LinRegSlope'].val
+        FT = self.indicators['FT'].val
+        FTd = self.indicators['FTD'].val
 
         curr_bar_time = self.bt.range_bar.CloseTime[0].tz_localize('utc').tz_convert('US/Central')
         hod = curr_bar_time.hour
@@ -24,38 +32,37 @@ class FT_Quicky_Base:
 
         if entry_permitted:
             if self.in_trend:
-                if self.bt.market.position == 'FLAT':
+                if self.market.position == 'FLAT':
                     if FT[0] > self.FTthresh:
                         if FTd[0] < -self.FTdthresh:
                             limit_price = self.bt.range_bar.Close[0]+self.offset*self.bt.range_bar.instr.TICK_SIZE
-                            enter_short_limit(self.bt, limit_price)
-                            set_profit_target(self.bt, self.PL)
-                            set_stop_loss(self.bt, self.PL)
-                            self.bt.market.position = "SHORT"
+                            enter_short_limit(self, limit_price)
+                            set_profit_target(self)
+                            set_stop_loss(self)
+                            self.market.position = "SHORT"
                             self.bars_passed = 0
-                            self.bt.trades.curr.market_pos = self.bt.market.position
-                            self.bt.trades.curr.entry_price = limit_price
+                            self.trades.curr.market_pos = self.market.position
+                            self.trades.curr.entry_price = limit_price
                             #print "H{}, L{}, O{}, C{}".format(self.bt.range_bar.High[0],self.bt.range_bar.Low[0],self.bt.range_bar.Open[0],self.bt.range_bar.Close[0])
                             #print "go SHORT at {} @ {}".format(curr_bar_time, limit_price)
 
                     elif FT[0] < -self.FTthresh:
                         if FTd[0] > self.FTdthresh:
                             limit_price = self.bt.range_bar.Close[0]-self.offset*self.bt.range_bar.instr.TICK_SIZE
-                            enter_long_limit(self.bt, limit_price)
-                            set_profit_target(self.bt, self.PL)
-                            set_stop_loss(self.bt, self.PL)
-                            self.bt.market.position = "LONG"
+                            enter_long_limit(self, limit_price)
+                            set_profit_target(self)
+                            set_stop_loss(self)
+                            self.market.position = "LONG"
                             self.bars_passed = 0
-                            self.bt.trades.curr.market_pos = self.bt.market.position
-                            self.bt.trades.curr.entry_price = limit_price
+                            self.trades.curr.market_pos = self.market.position
+                            self.trades.curr.entry_price = limit_price
                             #print "H{}, L{}, O{}, C{}".format(self.bt.range_bar.High[0],self.bt.range_bar.Low[0],self.bt.range_bar.Open[0],self.bt.range_bar.Close[0])
                             #print "go LONG at {} @ {}".format(curr_bar_time, limit_price)
 
-
-        if self.bt.order.order_state == "WORKING":
+        if self.order.order_state == "WORKING":
             self.bars_passed += 1
             if self.bars_passed > self.maxBars:
-                cancel_order(self.bt)
+                cancel_order(self)
                 self.in_trend = False
 
         if cross_above(FT, self.FTthresh) or cross_below(FT, -self.FTthresh):

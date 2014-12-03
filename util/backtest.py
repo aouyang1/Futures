@@ -10,12 +10,8 @@ class Backtest:
         self.futures_db = None
         self.range_bar = None
         self.daily_tick = None
-        self.order = None
-        self.market = None
         self.tick = None
-        self.indicators = {}
         self.strategies = {}
-        self.trades = None
 
 
 

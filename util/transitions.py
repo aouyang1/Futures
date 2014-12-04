@@ -21,7 +21,41 @@ from util.strategies import *
 class Transitions:
 
     @staticmethod
-    def initialize_transitions((instr_name, RANGE, init_day, final_day)):
+    def set_strategies(bt):
+        indicators1 = {}
+        indicators1['FT'] = FisherTransform(bt, bt.range_bar.Close, 15)
+        indicators1['FTD'] = LinRegSlope(bt, indicators1['FT'].val, 2)
+        bt.strategies['FT_Quicky_Base_1'] = FT_Quicky_Base(backtest=bt,
+                                                         indicators=indicators1,
+                                                         PL=17,
+                                                         offset=3,
+                                                         FTdthresh=0.1,
+                                                         FTthresh=2.5,
+                                                         maxBars=1)
+
+        indicators2 = {}
+        indicators2['FT'] = FisherTransform(bt, bt.range_bar.Close, 15)
+        indicators2['FTD'] = LinRegSlope(bt, indicators2['FT'].val, 2)
+        bt.strategies['FT_Quicky_Base_2'] = FT_Quicky_Base(backtest=bt,
+                                                         indicators=indicators2,
+                                                         PL=17,
+                                                         offset=3,
+                                                         FTdthresh=0.1,
+                                                         FTthresh=2.25,
+                                                         maxBars=1)
+
+        indicators3 = {}
+        indicators3['FT'] = FisherTransform(bt, bt.range_bar.Close, 15)
+        indicators3['FTD'] = LinRegSlope(bt, indicators3['FT'].val, 2)
+        bt.strategies['FT_Quicky_Base_3'] = FT_Quicky_Base(backtest=bt,
+                                                         indicators=indicators3,
+                                                         PL=17,
+                                                         offset=3,
+                                                         FTdthresh=0.1,
+                                                         FTthresh=2.00,
+                                                         maxBars=1)
+
+    def initialize_transitions(self, (instr_name, RANGE, init_day, final_day)):
         table_name = instr_name + '_LAST'
 
         start_stamp = pd.Timestamp(init_day).tz_localize('US/Central')
@@ -36,16 +70,7 @@ class Transitions:
         bt.range_bar = RangeBar(instr_name, RANGE)
         bt.daily_tick = DailyTick()
 
-        indicators = {}
-        indicators['FT'] = FisherTransform(bt, bt.range_bar.Close, 15)
-        indicators['FTD'] = LinRegSlope(bt, indicators['FT'].val, 2)
-        bt.strategies['FT_Quicky_Base'] = FT_Quicky_Base(backtest=bt,
-                                                         indicators=indicators,
-                                                         PL=17,
-                                                         offset=3,
-                                                         FTdthresh=0.1,
-                                                         FTthresh=2.5,
-                                                         maxBars=1)
+        self.set_strategies(bt)
 
         new_state = "load_daily_data"
 

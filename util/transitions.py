@@ -22,38 +22,13 @@ class Transitions:
 
     @staticmethod
     def set_strategies(bt):
-        indicators1 = {}
-        indicators1['FT'] = FisherTransform(bt, bt.range_bar.Close, 15)
-        indicators1['FTD'] = LinRegSlope(bt, indicators1['FT'].val, 2)
-        bt.strategies['FT_Quicky_Base_1'] = FT_Quicky_Base(backtest=bt,
-                                                         indicators=indicators1,
-                                                         PL=17,
-                                                         offset=3,
-                                                         FTdthresh=0.1,
-                                                         FTthresh=2.5,
-                                                         maxBars=1)
+        for PL in range(11, 41):
+            indicators = {}
+            indicators['FT'] = FisherTransform(bt, bt.range_bar.Close, 15)
+            indicators['FTD'] = LinRegSlope(bt, indicators['FT'].val, 2)
+            bt.strategies['FT_Quicky_Base_PL' + str(PL)] = FT_Quicky_Base(backtest=bt, indicators=indicators, PL=PL, offset=3, FTdthresh=0.1, FTthresh=2.5, maxBars=1)
 
-        indicators2 = {}
-        indicators2['FT'] = FisherTransform(bt, bt.range_bar.Close, 15)
-        indicators2['FTD'] = LinRegSlope(bt, indicators2['FT'].val, 2)
-        bt.strategies['FT_Quicky_Base_2'] = FT_Quicky_Base(backtest=bt,
-                                                         indicators=indicators2,
-                                                         PL=17,
-                                                         offset=3,
-                                                         FTdthresh=0.1,
-                                                         FTthresh=2.25,
-                                                         maxBars=1)
 
-        indicators3 = {}
-        indicators3['FT'] = FisherTransform(bt, bt.range_bar.Close, 15)
-        indicators3['FTD'] = LinRegSlope(bt, indicators3['FT'].val, 2)
-        bt.strategies['FT_Quicky_Base_3'] = FT_Quicky_Base(backtest=bt,
-                                                         indicators=indicators3,
-                                                         PL=17,
-                                                         offset=3,
-                                                         FTdthresh=0.1,
-                                                         FTthresh=2.00,
-                                                         maxBars=1)
 
     def initialize_transitions(self, (instr_name, RANGE, init_day, final_day)):
         table_name = instr_name + '_LAST'

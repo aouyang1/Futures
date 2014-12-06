@@ -29,6 +29,7 @@ if __name__ == "__main__":
     start_time = time.time()
     m.run((instr_name, RANGE, init_day, final_day))
     elapsed_time = time.time() - start_time
+    print "---------------------"
     print "Total time: {}".format(elapsed_time)
 
     print 'Done'

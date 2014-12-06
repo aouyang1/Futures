@@ -11,6 +11,7 @@ class Backtest:
         self.range_bar = None
         self.daily_tick = None
         self.tick = None
+        self.prev_tick = None
         self.strategies = {}
 
 

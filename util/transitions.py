@@ -16,21 +16,22 @@ from util.futuresdatabase import FuturesDatabase
 from util.rangebar import RangeBar
 from util.dailytick import DailyTick
 from util.strategies import *
+import time
 
 
 class Transitions:
 
     @staticmethod
     def set_strategies(bt):
-        for PL in range(11, 41):
+        for PL in range(17, 18):
             indicators = {}
             indicators['FT'] = FisherTransform(bt, bt.range_bar.Close, 15)
             indicators['FTD'] = LinRegSlope(bt, indicators['FT'].val, 2)
             bt.strategies['FT_Quicky_Base_PL' + str(PL)] = FT_Quicky_Base(backtest=bt, indicators=indicators, PL=PL, offset=3, FTdthresh=0.1, FTthresh=2.5, maxBars=1)
 
 
-
     def initialize_transitions(self, (instr_name, RANGE, init_day, final_day)):
+
         table_name = instr_name + '_LAST'
 
         start_stamp = pd.Timestamp(init_day).tz_localize('US/Central')
@@ -72,20 +73,22 @@ class Transitions:
         else:
             new_state = "show_results"
 
-
         return new_state, bt
 
     @staticmethod
     def search_for_event_transitions(bt):
 
         if bt.daily_tick.cnt < bt.daily_tick.df.shape[0]:
-            bt.tick = bt.daily_tick.df.ix[bt.daily_tick.cnt]
+            bt.tick = bt.daily_tick.get_curr_tick()
+            bt.prev_tick = bt.daily_tick.get_prev_tick()
             bt.range_bar.tick_list.append(bt.tick['Last'])
             # check for open orders and determine if they need to be filled
-            for strat_name in bt.strategies:
-                strat = bt.strategies[strat_name]
-                if strat.market.position != "FLAT":
-                    strat.order.update(bt, strat)
+
+            if bt.tick['Last'] != bt.prev_tick['Last']:
+                for strat_name in bt.strategies:
+                    strat = bt.strategies[strat_name]
+                    if strat.market.position != "FLAT":
+                        strat.order.update(bt, strat)
 
             # compute range bar HLOC
             if bt.daily_tick.cnt == 0:  # first tick of day session
@@ -124,6 +127,7 @@ class Transitions:
 
     @staticmethod
     def compute_indicators_transitions(bt):
+
         for strat_name in bt.strategies:
             strat = bt.strategies[strat_name]
             for indicator_name in strat.indicators:
@@ -135,6 +139,7 @@ class Transitions:
 
     @staticmethod
     def check_strategy_transitions(bt):
+
         for strat_name in bt.strategies:
             bt.strategies[strat_name].on_bar_update()
 
@@ -144,13 +149,15 @@ class Transitions:
 
     @staticmethod
     def show_results_transitions(bt):
+
         for strat_name in bt.strategies:
             strat = bt.strategies[strat_name]
             strat.trades.convert_to_dataframe()
             strat.trades.trade_log['cum_prof'] = np.cumsum(strat.trades.trade_log['profit'])
             col = ['market_pos', 'entry_price', 'exit_price', 'entry_time', 'exit_time', 'exit_name', 'profit', 'cum_prof']
             print strat.trades.trade_log[col]
-        #ipdb.set_trace()
+
+
         new_state = "finished"
 
         return new_state, bt

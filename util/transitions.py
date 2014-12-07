@@ -9,7 +9,10 @@ Transition class containing the functions for the next state in the finite state
 """
 
 import pandas as pd
+from pandas import DataFrame
 from pandas.tseries.offsets import *
+import numpy as np
+import re
 import ipdb
 from util.backtest import Backtest
 from util.futuresdatabase import FuturesDatabase
@@ -23,7 +26,7 @@ class Transitions:
 
     @staticmethod
     def set_strategies(bt):
-        for PL in range(17, 18):
+        for PL in range(11, 41):
             indicators = {}
             indicators['FT'] = FisherTransform(bt, bt.range_bar.Close, 15)
             indicators['FTD'] = LinRegSlope(bt, indicators['FT'].val, 2)
@@ -92,14 +95,14 @@ class Transitions:
 
             # compute range bar HLOC
             if bt.daily_tick.cnt == 0:  # first tick of day session
-                bt.range_bar.init(bt.tick)
+                bt.range_bar.init(bt)
 
             elif bt.daily_tick.cnt == (bt.daily_tick.df.shape[0]-1):  # last tick of day session
-                bt.range_bar.update(bt.tick)
+                bt.range_bar.update(bt)
                 bt.range_bar.close()
 
             else:  # normal range bar check and update
-                bt.range_bar.update(bt.tick)
+                bt.range_bar.update(bt)
 
             # next state logic
             if bt.range_bar.event_found:
@@ -157,6 +160,43 @@ class Transitions:
             col = ['market_pos', 'entry_price', 'exit_price', 'entry_time', 'exit_time', 'exit_name', 'profit', 'cum_prof']
             print strat.trades.trade_log[col]
 
+            """
+            header = ['Trade-#',
+                      'Instrument',
+                      'Account',
+                      'Strategy',
+                      'Market pos.',
+                      'Quantity',
+                      'Entry price',
+                      'Exit price',
+                      'Entry time',
+                      'Exit time',
+                      'Entry name',
+                      'Exit name',
+                      'Profit',
+                      'Cum. profit',
+                      'Commission',
+                      'MAE',
+                      'MFE',
+                      'ETD',
+                      'Bars']
+
+            df = DataFrame(np.zeros((strat.trades.trade_log.shape[0], len(header))), columns=header)
+            df['Market pos.'] = strat.trades.trade_log['market_pos'].apply(lambda x: x.lower()).apply(lambda x: x.title())
+            df['Quantity'] = 1
+            df['Entry price'] = strat.trades.trade_log['entry_price']
+            df['Exit price'] = strat.trades.trade_log['exit_price']
+            df['Entry time'] = strat.trades.trade_log['entry_time'].apply(lambda x: str(x)[:-6])
+            df['Exit time'] = strat.trades.trade_log['exit_time'].apply(lambda x: str(x)[:-6])
+            df['Exit name'] = strat.trades.trade_log['exit_name']
+            df['Profit'] = strat.trades.trade_log['profit']
+            df['Cum. profit'] = strat.trades.trade_log['cum_prof']
+
+
+            #pathname = '/home/aouyang1/Dropbox/Futures Trading/FT_QUICKY_v3/GC/BASE/PL' + re.findall(r'\d+', strat_name)[0] + '_py/' + strat_name + '.csv'
+
+            #df.to_csv(path_or_buf=pathname, index=False)
+            """
 
         new_state = "finished"
 

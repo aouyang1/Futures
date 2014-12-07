@@ -20,13 +20,13 @@ class RangeBar:
         self.cnt = 0
         self.event_found = False
 
-    def init(self, tick):
-        self.curr.High = tick['Last']
-        self.curr.Low = tick['Last']
-        self.curr.Open = tick['Last']
-        self.curr.Close = tick['Last']
-        self.curr.Volume = tick['Volume']
-        self.curr.CloseTime = tick.name
+    def init(self, bt):
+        self.curr.High = bt.tick['Last']
+        self.curr.Low = bt.tick['Last']
+        self.curr.Open = bt.tick['Last']
+        self.curr.Close = bt.tick['Last']
+        self.curr.Volume = bt.tick['Volume']
+        self.curr.CloseTime = bt.tick.name
 
     def close(self):
         self.High.insert(0, self.curr.High)
@@ -42,47 +42,48 @@ class RangeBar:
         # calculate new indicator values
         # check for strategy entry
 
-    def update(self, tick):
+    def update(self, bt):
 
-        self.curr.CloseTime = tick.name
-        self.curr.Volume += tick['Volume']
+        self.curr.CloseTime = bt.tick.name
+        self.curr.Volume += bt.tick['Volume']
 
-        if round((tick['Last']-self.curr.Low)/self.instr.TICK_SIZE) > self.RANGE:    # check if range has broken above
+        if bt.tick['Last'] != bt.prev_tick['Last']:
+            if round((bt.tick['Last']-self.curr.Low)/self.instr.TICK_SIZE) > self.RANGE:    # check if range has broken above
 
-            while round((tick['Last'] - self.curr.Low)/self.instr.TICK_SIZE) > self.RANGE:
-                self.curr.High = self.curr.Low + self.RANGE*self.instr.TICK_SIZE
-                self.curr.Close = self.curr.High
-                self.close()
+                while round((bt.tick['Last'] - self.curr.Low)/self.instr.TICK_SIZE) > self.RANGE:
+                    self.curr.High = self.curr.Low + self.RANGE*self.instr.TICK_SIZE
+                    self.curr.Close = self.curr.High
+                    self.close()
 
-                self.curr.Low = self.Close[0] + self.instr.TICK_SIZE
-                self.curr.Open = self.curr.Low
-                self.curr.Volume = 0
+                    self.curr.Low = self.Close[0] + self.instr.TICK_SIZE
+                    self.curr.Open = self.curr.Low
+                    self.curr.Volume = 0
 
-            self.curr.High = tick['Last']
-            self.curr.Close = tick['Last']
+                self.curr.High = bt.tick['Last']
+                self.curr.Close = bt.tick['Last']
 
-        elif round((self.curr.High-tick['Last'])/self.instr.TICK_SIZE) > self.RANGE: # check if range has broken below
+            elif round((self.curr.High-bt.tick['Last'])/self.instr.TICK_SIZE) > self.RANGE: # check if range has broken below
 
-            while round((self.curr.High - tick['Last'])/self.instr.TICK_SIZE) > self.RANGE:
-                self.curr.Low = self.curr.High - self.RANGE*self.instr.TICK_SIZE
-                self.curr.Close = self.curr.Low
-                self.close()
+                while round((self.curr.High - bt.tick['Last'])/self.instr.TICK_SIZE) > self.RANGE:
+                    self.curr.Low = self.curr.High - self.RANGE*self.instr.TICK_SIZE
+                    self.curr.Close = self.curr.Low
+                    self.close()
 
-                self.curr.High = self.Close[0] - self.instr.TICK_SIZE
-                self.curr.Open = self.curr.High
-                self.curr.Volume = 0
+                    self.curr.High = self.Close[0] - self.instr.TICK_SIZE
+                    self.curr.Open = self.curr.High
+                    self.curr.Volume = 0
 
-            self.curr.Low = tick['Last']
-            self.curr.Close = tick['Last']
+                self.curr.Low = bt.tick['Last']
+                self.curr.Close = bt.tick['Last']
 
-        elif tick['Last'] > self.curr.High:                          # check if new high in bar is made
-            self.curr.High = tick['Last']
+            elif bt.tick['Last'] > self.curr.High:                          # check if new high in bar is made
+                self.curr.High = bt.tick['Last']
 
-        elif tick['Last'] < self.curr.Low:                           # check if new low in bar is made
-            self.curr.Low = tick['Last']
+            elif bt.tick['Last'] < self.curr.Low:                           # check if new low in bar is made
+                self.curr.Low = bt.tick['Last']
 
-        else:                                                       # update current close of bar
-            self.curr.Close = tick['Last']
+            else:                                                       # update current close of bar
+                self.curr.Close = bt.tick['Last']
 
     def get_ticks_in_bar(self, bars_from_current):
         return self.TickRecord[self.cnt - bars_from_current - 1]

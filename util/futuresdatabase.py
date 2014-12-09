@@ -12,12 +12,14 @@ class FuturesDatabase:
         self.con = self.engine.connect()
         self.blockSize = blockSize
 
-    def fetch_between_dates(self, table_name, start_date, end_date):
+    def fetch_between_dates(self, table_name, start_date, end_date, convert_to_float=True):
         sql = "SELECT * FROM " + table_name + \
               " WHERE DATE BETWEEN '" + start_date + \
               "' and '" + end_date + "';"
         df = pd.read_sql_query(sql=sql, con=self.engine, index_col='Date')
-        df['Last'] = df['Last'].astype('float')
+        if convert_to_float:
+            df['Last'] = df['Last'].astype('float')
+
         return df
 
 

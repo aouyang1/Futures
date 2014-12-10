@@ -13,6 +13,7 @@ from pandas import DataFrame
 from pandas.tseries.offsets import *
 import numpy as np
 import re
+import os
 import ipdb
 from util.backtest import Backtest
 from util.futuresdatabase import FuturesDatabase
@@ -35,7 +36,7 @@ class Transitions:
 
     def initialize_transitions(self, (instr_name, RANGE, init_day, final_day)):
 
-        table_name = instr_name + '_LAST'
+        table_name = instr_name + '_LAST_COMPRESSED'
 
         start_stamp = pd.Timestamp(init_day).tz_localize('US/Central')
         start_stamp_utc = start_stamp.tz_convert('utc')
@@ -71,6 +72,8 @@ class Transitions:
                                                                  start_date=start_date,
                                                                  end_date=end_date)
 
+            bt.daily_tick.set_lists()
+
             new_state = "search_for_event"
 
         else:
@@ -82,11 +85,12 @@ class Transitions:
     def search_for_event_transitions(bt):
 
         if bt.daily_tick.cnt < bt.daily_tick.df.shape[0]:
+
             bt.tick = bt.daily_tick.get_curr_tick()
             bt.prev_tick = bt.daily_tick.get_prev_tick()
-            bt.range_bar.tick_list.append(bt.tick['Last'])
+            #bt.range_bar.tick_list.append(bt.tick['Last'])
             # check for open orders and determine if they need to be filled
-
+            """
             if bt.tick['Last'] != bt.prev_tick['Last']:
                 for strat_name in bt.strategies:
                     strat = bt.strategies[strat_name]
@@ -103,7 +107,7 @@ class Transitions:
 
             else:  # normal range bar check and update
                 bt.range_bar.update(bt)
-
+            """
             # next state logic
             if bt.range_bar.event_found:
                 new_state = "compute_indicators"
@@ -159,7 +163,6 @@ class Transitions:
             strat.trades.trade_log['cum_prof'] = np.cumsum(strat.trades.trade_log['profit'])
             col = ['market_pos', 'entry_price', 'exit_price', 'entry_time', 'exit_time', 'exit_name', 'profit', 'cum_prof']
             print strat.trades.trade_log[col]
-
             """
             header = ['Trade-#',
                       'Instrument',
@@ -192,12 +195,12 @@ class Transitions:
             df['Profit'] = strat.trades.trade_log['profit']
             df['Cum. profit'] = strat.trades.trade_log['cum_prof']
 
+            folder_name = '/home/aouyang1/Dropbox/Futures Trading/FT_QUICKY_v3/GC/BASE (copy)/PL' + re.findall(r'\d+', strat_name)[0] + '_py_comp/'
+            os.mkdir(folder_name)
+            pathname = folder_name + strat_name + '.csv'
 
-            #pathname = '/home/aouyang1/Dropbox/Futures Trading/FT_QUICKY_v3/GC/BASE/PL' + re.findall(r'\d+', strat_name)[0] + '_py/' + strat_name + '.csv'
-
-            #df.to_csv(path_or_buf=pathname, index=False)
+            df.to_csv(path_or_buf=pathname, index=False)
             """
-
         new_state = "finished"
 
         return new_state, bt

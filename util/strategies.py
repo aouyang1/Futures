@@ -5,6 +5,8 @@ from util.order import Order
 from util.market import Market
 from util.indicators import *
 from util.trades import Trades
+import pandas as pd
+
 
 class FT_Quicky_Base:
 
@@ -26,7 +28,7 @@ class FT_Quicky_Base:
         FT = self.indicators['FT'].val
         FTd = self.indicators['FTD'].val
 
-        curr_bar_time = self.bt.range_bar.CloseTime[0].tz_localize('utc').tz_convert('US/Central')
+        curr_bar_time = self.bt.range_bar.CloseTime[0]
         hod = curr_bar_time.hour
         entry_permitted = not(hod == 16 or hod == 17)
 
@@ -43,8 +45,6 @@ class FT_Quicky_Base:
                             self.bars_passed = 0
                             self.trades.curr.market_pos = self.market.position
                             self.trades.curr.entry_price = limit_price
-                            #print "H{}, L{}, O{}, C{}".format(self.bt.range_bar.High[0],self.bt.range_bar.Low[0],self.bt.range_bar.Open[0],self.bt.range_bar.Close[0])
-                            #print "go SHORT at {} @ {}".format(curr_bar_time, limit_price)
 
                     elif FT[0] < -self.FTthresh:
                         if FTd[0] > self.FTdthresh:
@@ -56,8 +56,6 @@ class FT_Quicky_Base:
                             self.bars_passed = 0
                             self.trades.curr.market_pos = self.market.position
                             self.trades.curr.entry_price = limit_price
-                            #print "H{}, L{}, O{}, C{}".format(self.bt.range_bar.High[0],self.bt.range_bar.Low[0],self.bt.range_bar.Open[0],self.bt.range_bar.Close[0])
-                            #print "go LONG at {} @ {}".format(curr_bar_time, limit_price)
 
         if self.order.order_state == "WORKING":
             self.bars_passed += 1

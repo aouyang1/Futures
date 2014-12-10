@@ -4,6 +4,7 @@ import sqlalchemy as sqlalch
 import pandas as pd
 import numpy as np
 from sys import stdout
+import ipdb
 
 class FuturesDatabase:
 
@@ -17,8 +18,12 @@ class FuturesDatabase:
               " WHERE DATE BETWEEN '" + start_date + \
               "' and '" + end_date + "';"
         df = pd.read_sql_query(sql=sql, con=self.engine, index_col='Date')
-        if convert_to_float:
-            df['Last'] = df['Last'].astype('float')
+
+        if df.shape[0] != 0:
+            if convert_to_float:
+                df['Last'] = df['Last'].astype('float')
+
+            df.index = df.index.tz_localize('utc').tz_convert('US/Central')
 
         return df
 

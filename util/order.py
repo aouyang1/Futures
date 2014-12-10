@@ -26,18 +26,18 @@ class Order:
             if self.order_action == "BUY":
                 if backtest.tick['Last'] <= self.limit_price:
                     self.order_state = "FILLED"
-                    strat.trades.curr.entry_time = backtest.tick.name
+                    strat.trades.curr.entry_time = backtest.tick['Date']
             elif self.order_action == "SELL":
                 if backtest.tick['Last'] >= self.limit_price:
                     self.order_state = "FILLED"
-                    strat.trades.curr.entry_time = backtest.tick.name
+                    strat.trades.curr.entry_time = backtest.tick['Date']
 
         elif self.order_state == "FILLED":
             # looking for profit target to hit, stop loss to hit, or eof day
-            curr_time = backtest.tick.name.tz_localize('utc').tz_convert('US/Central')
+            curr_time = backtest.tick['Date']
             if self.order_action == "BUY":
                 if backtest.tick['Last'] >= self.profit_target:
-                    strat.trades.curr.exit_time = backtest.tick.name
+                    strat.trades.curr.exit_time = backtest.tick['Date']
                     strat.trades.curr.exit_price = self.profit_target
                     strat.trades.curr.exit_name = 'Profit target'
                     self.calculate_profit(backtest, strat)
@@ -46,7 +46,7 @@ class Order:
                     self.reset()
 
                 elif backtest.tick['Last'] <= self.stop_loss:
-                    strat.trades.curr.exit_time = backtest.tick.name
+                    strat.trades.curr.exit_time = backtest.tick['Date']
                     strat.trades.curr.exit_price = backtest.tick['Last']
                     strat.trades.curr.exit_name = 'Stop loss'
                     self.calculate_profit(backtest, strat)
@@ -55,7 +55,7 @@ class Order:
                     self.reset()
 
                 elif curr_time.hour == 16 and curr_time.minute == 14 and 30 <= curr_time.second <= 59:
-                    strat.trades.curr.exit_time = backtest.tick.name
+                    strat.trades.curr.exit_time = backtest.tick['Date']
                     strat.trades.curr.exit_price = backtest.tick['Last']
                     strat.trades.curr.exit_name = 'Exit on close'
                     self.calculate_profit(backtest, strat)
@@ -65,7 +65,7 @@ class Order:
 
             elif self.order_action == "SELL":
                 if backtest.tick['Last'] <= self.profit_target:
-                    strat.trades.curr.exit_time = backtest.tick.name
+                    strat.trades.curr.exit_time = backtest.tick['Date']
                     strat.trades.curr.exit_price = self.profit_target
                     strat.trades.curr.exit_name = 'Profit target'
                     self.calculate_profit(backtest, strat)
@@ -74,7 +74,7 @@ class Order:
                     self.reset()
 
                 elif backtest.tick['Last'] >= self.stop_loss:
-                    strat.trades.curr.exit_time = backtest.tick.name
+                    strat.trades.curr.exit_time = backtest.tick['Date']
                     strat.trades.curr.exit_price = backtest.tick['Last']
                     strat.trades.curr.exit_name = 'Stop loss'
                     self.calculate_profit(backtest, strat)
@@ -83,7 +83,7 @@ class Order:
                     self.reset()
 
                 elif curr_time.hour == 16 and curr_time.minute == 14 and 30 <= curr_time.second <= 59:
-                    strat.trades.curr.exit_time = backtest.tick.name
+                    strat.trades.curr.exit_time = backtest.tick['Date']
                     strat.trades.curr.exit_price = backtest.tick['Last']
                     strat.trades.curr.exit_name = 'Exit on close'
                     self.calculate_profit(backtest, strat)

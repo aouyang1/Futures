@@ -2,6 +2,7 @@ __author__ = 'aouyang1'
 
 from pandas import DataFrame
 
+
 class Trades:
 
     def __init__(self):
@@ -19,8 +20,8 @@ class Trades:
         self.market_pos.append(self.curr.market_pos)
         self.entry_price.append(self.curr.entry_price)
         self.exit_price.append(self.curr.exit_price)
-        self.entry_time.append(self.curr.entry_time.tz_localize('utc').tz_convert('US/Central'))
-        self.exit_time.append(self.curr.exit_time.tz_localize('utc').tz_convert('US/Central'))
+        self.entry_time.append(self.curr.entry_time)
+        self.exit_time.append(self.curr.exit_time)
         self.exit_name.append(self.curr.exit_name)
         self.profit.append(self.curr.profit)
 

@@ -1,4 +1,4 @@
-
+import time
 from util.instrument import InstrumentTraits
 from util.hloc import CurrentHLOC
 
@@ -26,7 +26,7 @@ class RangeBar:
         self.curr.Open = bt.tick['Last']
         self.curr.Close = bt.tick['Last']
         self.curr.Volume = bt.tick['Volume']
-        self.curr.CloseTime = bt.tick.name
+        self.curr.CloseTime = bt.tick['Date']
 
     def close(self):
         self.High.insert(0, self.curr.High)
@@ -39,12 +39,10 @@ class RangeBar:
         self.cnt += 1
         self.tick_list = []
         self.event_found = True
-        # calculate new indicator values
-        # check for strategy entry
 
     def update(self, bt):
 
-        self.curr.CloseTime = bt.tick.name
+        self.curr.CloseTime = bt.tick['Date']
         self.curr.Volume += bt.tick['Volume']
 
         if bt.tick['Last'] != bt.prev_tick['Last']:

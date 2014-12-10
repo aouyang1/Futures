@@ -10,7 +10,7 @@ if __name__ == "__main__":
 
     instr_name = 'GC'
     RANGE = 10
-    init_day = '2013-09-12 17:00:00'
+    init_day = '2013-09-10 17:00:00'
     final_day = '2014-11-30 16:59:59'
 
     m = StateMachine()

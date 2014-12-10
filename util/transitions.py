@@ -22,6 +22,9 @@ from util.dailytick import DailyTick
 from util.strategies import *
 import time
 
+order_time = 0.0
+indicator_time = 0.0
+strategy_time = 0.0
 
 class Transitions:
 
@@ -32,7 +35,6 @@ class Transitions:
             indicators['FT'] = FisherTransform(bt, bt.range_bar.Close, 15)
             indicators['FTD'] = LinRegSlope(bt, indicators['FT'].val, 2)
             bt.strategies['FT_Quicky_Base_PL' + str(PL)] = FT_Quicky_Base(backtest=bt, indicators=indicators, PL=PL, offset=3, FTdthresh=0.1, FTthresh=2.5, maxBars=1)
-
 
     def initialize_transitions(self, (instr_name, RANGE, init_day, final_day)):
 
@@ -90,12 +92,15 @@ class Transitions:
             bt.prev_tick = bt.daily_tick.get_prev_tick()
             #bt.range_bar.tick_list.append(bt.tick['Last'])
             # check for open orders and determine if they need to be filled
-            """
+
+            start_time = time.time()
             if bt.tick['Last'] != bt.prev_tick['Last']:
                 for strat_name in bt.strategies:
                     strat = bt.strategies[strat_name]
                     if strat.market.position != "FLAT":
                         strat.order.update(bt, strat)
+            global order_time
+            order_time += time.time() - start_time
 
             # compute range bar HLOC
             if bt.daily_tick.cnt == 0:  # first tick of day session
@@ -107,7 +112,7 @@ class Transitions:
 
             else:  # normal range bar check and update
                 bt.range_bar.update(bt)
-            """
+
             # next state logic
             if bt.range_bar.event_found:
                 new_state = "compute_indicators"
@@ -134,11 +139,14 @@ class Transitions:
 
     @staticmethod
     def compute_indicators_transitions(bt):
-
+        start_time = time.time()
         for strat_name in bt.strategies:
             strat = bt.strategies[strat_name]
             for indicator_name in strat.indicators:
                 strat.indicators[indicator_name].on_bar_update()
+
+        global indicator_time
+        indicator_time += time.time() - start_time
 
         new_state = "check_strategy"
 
@@ -146,9 +154,12 @@ class Transitions:
 
     @staticmethod
     def check_strategy_transitions(bt):
-
+        start_time = time.time()
         for strat_name in bt.strategies:
             bt.strategies[strat_name].on_bar_update()
+
+        global strategy_time
+        strategy_time += time.time() - start_time
 
         new_state = "search_for_event"
 
@@ -163,6 +174,9 @@ class Transitions:
             strat.trades.trade_log['cum_prof'] = np.cumsum(strat.trades.trade_log['profit'])
             col = ['market_pos', 'entry_price', 'exit_price', 'entry_time', 'exit_time', 'exit_name', 'profit', 'cum_prof']
             print strat.trades.trade_log[col]
+            print "Order time: {:.2f}".format(order_time)
+            print "Indicator time: {:.2f}".format(indicator_time)
+            print "Strategy time: {:.2f}".format(strategy_time)
             """
             header = ['Trade-#',
                       'Instrument',

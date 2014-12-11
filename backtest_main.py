@@ -1,7 +1,8 @@
 __author__ = 'Austin Ouyang'
 
 import time
-
+import datetime
+import pandas as pd
 from util.statemachine import StateMachine
 from util.transitions import Transitions
 
@@ -10,8 +11,8 @@ if __name__ == "__main__":
 
     instr_name = 'GC'
     RANGE = 10
-    init_day = '2013-09-10 17:00:00'
-    final_day = '2014-11-30 16:59:59'
+    init_day = '2013-09-15 17:00:00'
+    final_day = '2013-09-22 16:59:59'
 
     m = StateMachine()
     t = Transitions()       # next state functions for state machine
@@ -26,10 +27,16 @@ if __name__ == "__main__":
 
     m.set_start("initialize")
 
+    print "Backtest start time: {}".format(pd.Timestamp(datetime.datetime.now()))
+    print "------------------------------------------------"
+    print "Instrument: {}".format(instr_name)
+    print "     Range: {}".format(RANGE)
+    print "     Start: {}".format(init_day)
+    print "       End: {}".format(final_day)
+    print "------------------------------------------------"
+
     start_time = time.time()
     m.run((instr_name, RANGE, init_day, final_day))
     elapsed_time = time.time() - start_time
-    print "---------------------"
-    print "Total time: {}".format(elapsed_time)
 
-    print 'Done'
+    print "Total time: {}".format(elapsed_time)

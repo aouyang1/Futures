@@ -11,7 +11,6 @@ Transition class containing the functions for the next state in the finite state
 import pandas as pd
 from pandas import DataFrame
 from pandas.tseries.offsets import *
-import numpy as np
 import re
 import os
 import ipdb
@@ -20,11 +19,16 @@ from util.futuresdatabase import FuturesDatabase
 from util.rangebar import RangeBar
 from util.dailytick import DailyTick
 from util.strategies import *
+from util.indicators import *
 import time
+from sys import stdout
 
 order_time = 0.0
 indicator_time = 0.0
 strategy_time = 0.0
+num_bdays = 0
+day_cnt = 0
+
 
 class Transitions:
 
@@ -33,8 +37,14 @@ class Transitions:
         for PL in range(11, 41):
             indicators = {}
             indicators['FT'] = FisherTransform(bt, bt.range_bar.Close, 15)
-            indicators['FTD'] = LinRegSlope(bt, indicators['FT'].val, 2)
-            bt.strategies['FT_Quicky_Base_PL' + str(PL)] = FT_Quicky_Base(backtest=bt, indicators=indicators, PL=PL, offset=3, FTdthresh=0.1, FTthresh=2.5, maxBars=1)
+            indicators['FTD'] = Diff(bt, indicators['FT'].val, 2)
+            bt.strategies['FT_Quicky_Base_PL' + str(PL)] = FT_Quicky_Base(backtest=bt,
+                                                                          indicators=indicators,
+                                                                          PL=PL,
+                                                                          offset=3,
+                                                                          FTdthresh=0.1,
+                                                                          FTthresh=2.5,
+                                                                          maxBars=1)
 
     def initialize_transitions(self, (instr_name, RANGE, init_day, final_day)):
 
@@ -45,6 +55,9 @@ class Transitions:
 
         final_stamp = pd.Timestamp(final_day).tz_localize('US/Central')
         final_stamp_utc = final_stamp.tz_convert('utc')
+
+        global num_bdays
+        num_bdays = len(pd.bdate_range(start_stamp_utc, final_stamp_utc))
 
         bt = Backtest(table_name, RANGE, start_stamp_utc, final_stamp_utc)
 
@@ -60,9 +73,12 @@ class Transitions:
 
     def load_daily_data_transitions(self, bt):
 
-        if bt.start_stamp_utc < bt.final_stamp_utc:
-            print bt.start_stamp_utc
+        global day_cnt
+        stdout.write("\r%s" % "Running: " + str(bt.start_stamp_utc)[0:10] + "   " + str(day_cnt) + "/" + str(num_bdays))
+        stdout.flush()
+        day_cnt += 1
 
+        if bt.start_stamp_utc < bt.final_stamp_utc:
             start_date = self.timestamp_to_SQLstring(bt.start_stamp_utc)
 
             # get end of day timestamp
@@ -91,8 +107,8 @@ class Transitions:
             bt.tick = bt.daily_tick.get_curr_tick()
             bt.prev_tick = bt.daily_tick.get_prev_tick()
             #bt.range_bar.tick_list.append(bt.tick['Last'])
-            # check for open orders and determine if they need to be filled
 
+            # check for open orders and determine if they need to be filled
             start_time = time.time()
             if bt.tick['Last'] != bt.prev_tick['Last']:
                 for strat_name in bt.strategies:
@@ -172,49 +188,18 @@ class Transitions:
             strat = bt.strategies[strat_name]
             strat.trades.convert_to_dataframe()
             strat.trades.trade_log['cum_prof'] = np.cumsum(strat.trades.trade_log['profit'])
-            col = ['market_pos', 'entry_price', 'exit_price', 'entry_time', 'exit_time', 'exit_name', 'profit', 'cum_prof']
-            print strat.trades.trade_log[col]
-            print "Order time: {:.2f}".format(order_time)
-            print "Indicator time: {:.2f}".format(indicator_time)
-            print "Strategy time: {:.2f}".format(strategy_time)
             """
-            header = ['Trade-#',
-                      'Instrument',
-                      'Account',
-                      'Strategy',
-                      'Market pos.',
-                      'Quantity',
-                      'Entry price',
-                      'Exit price',
-                      'Entry time',
-                      'Exit time',
-                      'Entry name',
-                      'Exit name',
-                      'Profit',
-                      'Cum. profit',
-                      'Commission',
-                      'MAE',
-                      'MFE',
-                      'ETD',
-                      'Bars']
-
-            df = DataFrame(np.zeros((strat.trades.trade_log.shape[0], len(header))), columns=header)
-            df['Market pos.'] = strat.trades.trade_log['market_pos'].apply(lambda x: x.lower()).apply(lambda x: x.title())
-            df['Quantity'] = 1
-            df['Entry price'] = strat.trades.trade_log['entry_price']
-            df['Exit price'] = strat.trades.trade_log['exit_price']
-            df['Entry time'] = strat.trades.trade_log['entry_time'].apply(lambda x: str(x)[:-6])
-            df['Exit time'] = strat.trades.trade_log['exit_time'].apply(lambda x: str(x)[:-6])
-            df['Exit name'] = strat.trades.trade_log['exit_name']
-            df['Profit'] = strat.trades.trade_log['profit']
-            df['Cum. profit'] = strat.trades.trade_log['cum_prof']
-
-            folder_name = '/home/aouyang1/Dropbox/Futures Trading/FT_QUICKY_v3/GC/BASE (copy)/PL' + re.findall(r'\d+', strat_name)[0] + '_py_comp/'
-            os.mkdir(folder_name)
-            pathname = folder_name + strat_name + '.csv'
-
-            df.to_csv(path_or_buf=pathname, index=False)
+            #col = ['market_pos', 'entry_price', 'exit_price', 'entry_time', 'exit_time', 'exit_name', 'profit', 'cum_prof']
+            #print strat.trades.trade_log[col]
+            #self.write_results(strat_name, strat)
             """
+
+        stdout.write("\n")
+        print "------------------------------------------------"
+        print "    Order time: {:.2f}".format(order_time)
+        print "Indicator time: {:.2f}".format(indicator_time)
+        print " Strategy time: {:.2f}".format(strategy_time)
+        print "------------------------------------------------"
         new_state = "finished"
 
         return new_state, bt
@@ -222,3 +207,45 @@ class Transitions:
     def timestamp_to_SQLstring(self, timestamp):
         return str(timestamp)[:-6]
 
+    def write_results(self, strat_name, strat):
+        header = ['Trade-#',
+                  'Instrument',
+                  'Account',
+                  'Strategy',
+                  'Market pos.',
+                  'Quantity',
+                  'Entry price',
+                  'Exit price',
+                  'Entry time',
+                  'Exit time',
+                  'Entry name',
+                  'Exit name',
+                  'Profit',
+                  'Cum. profit',
+                  'Commission',
+                  'MAE',
+                  'MFE',
+                  'ETD',
+                  'Bars']
+
+        df = DataFrame(np.zeros((strat.trades.trade_log.shape[0], len(header))), columns=header)
+        df['Market pos.'] = strat.trades.trade_log['market_pos'].apply(lambda x: x.lower()).apply(lambda x: x.title())
+        df['Quantity'] = 1
+        df['Entry price'] = strat.trades.trade_log['entry_price']
+        df['Exit price'] = strat.trades.trade_log['exit_price']
+        df['Entry time'] = strat.trades.trade_log['entry_time'].apply(lambda x: str(x)[:-6])
+        df['Exit time'] = strat.trades.trade_log['exit_time'].apply(lambda x: str(x)[:-6])
+        df['Exit name'] = strat.trades.trade_log['exit_name']
+        df['Profit'] = strat.trades.trade_log['profit']
+        df['Cum. profit'] = strat.trades.trade_log['cum_prof']
+
+        folder_name = '/home/aouyang1/Dropbox/Futures Trading/FT_QUICKY_v3/GC/BASE (copy)/PL' + \
+                      re.findall(r'\d+', strat_name)[0] + \
+                      '_py_comp/'
+
+        if not os.path.isdir(folder_name):
+            os.mkdir(folder_name)
+
+        pathname = folder_name + strat_name + '.csv'
+
+        df.to_csv(path_or_buf=pathname, index=False)

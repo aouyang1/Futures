@@ -3,9 +3,7 @@ __author__ = 'aouyang1'
 from util.strategy_functions import *
 from util.order import Order
 from util.market import Market
-from util.indicators import *
 from util.trades import Trades
-import pandas as pd
 
 
 class FT_Quicky_Base:
@@ -67,4 +65,3 @@ class FT_Quicky_Base:
             self.in_trend = True
         elif cross_below(FT, self.FTthresh) or cross_above(FT, -self.FTthresh):
             self.in_trend = False
-

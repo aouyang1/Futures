@@ -64,6 +64,19 @@ class LinRegSlope:
             self.val.insert(0, 0)
 
 
+class Diff:
+
+    def __init__(self, backtest, dataseries, period):
+        self.bt = backtest
+        self.dataseries = dataseries
+        self.period = period
+        self.val = []
+
+    def on_bar_update(self):
+
+        if self.bt.range_bar.cnt >= self.period:
+            self.val.insert(0, self.dataseries[0] - self.dataseries[self.period-1])
+
 
 
 

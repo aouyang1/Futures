@@ -13,7 +13,7 @@ class FuturesDatabase:
         self.con = self.engine.connect()
         self.blockSize = blockSize
 
-    def fetch_between_dates(self, table_name, start_date, end_date, convert_to_float=True):
+    def fetch_between_dates(self, table_name, start_date, end_date, convert_to_float=True, time_zone='utc'):
         sql = "SELECT * FROM " + table_name + \
               " WHERE DATE BETWEEN '" + start_date + \
               "' and '" + end_date + "';"
@@ -23,7 +23,9 @@ class FuturesDatabase:
             if convert_to_float:
                 df['Last'] = df['Last'].astype('float')
 
-            df.index = df.index.tz_localize('utc').tz_convert('US/Central')
+            df.index = df.index.tz_localize('utc')
+            if time_zone != 'utc':
+                df.index = df.index.tz_convert(time_zone)
 
         return df
 

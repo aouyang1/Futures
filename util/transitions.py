@@ -222,10 +222,11 @@ class Transitions:
             strat = bt.strategies[s]
             strat.trades.convert_to_dataframe()
             strat.trades.trade_log['cum_prof'] = np.cumsum(strat.trades.trade_log['profit'])
-            print "{}: {:.2%} on {} trades with pval: {}".format(s,
-                                                                 strat.trades.calc_win_perc(),
+            winperc, winperc_pval = strat.trades.calc_win_perc()
+            print "{}: {:.2%} on {} trades with pval: {:.6f}".format(s,
+                                                                 winperc,
                                                                  strat.trades.trade_log.shape[0],
-                                                                 strat.trades.calc_pval())
+                                                                 winperc_pval)
             """
             col = ['market_pos', 'entry_price', 'exit_price', 'entry_time', 'exit_time', 'exit_name', 'profit', 'cum_prof']
             print strat.trades.trade_log[col].head()

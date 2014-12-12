@@ -36,20 +36,35 @@ class Trades:
                                     'exit_name': self.exit_name,
                                     'profit': self.profit})
 
+    def get_num_trades(self):
+        return self.trade_log.shape[0]
+
     def calc_win_perc(self):
         profit = self.trade_log['profit']
-        num_trades = len(profit)
-        wins = np.sum(profit > 0.0)
+        num_trades = self.get_num_trades()
+        total_wins = np.sum(profit > 0.0)
         if num_trades == 0:
-            return 0
+            return 0, 0.0
         else:
-            return wins/float(num_trades)
+            return total_wins/float(num_trades), stats.binom_test(total_wins, n=num_trades, p=0.5)
 
-    def calc_pval(self):
-        profit = self.trade_log['profit']
-        num_trades = len(profit)
-        wins = np.sum(profit > 0.0)
-        return stats.binom_test(wins, n=num_trades, p=0.5)
+    def calc_var(self, perc, period):
+        # TODO: calculate daily value at risk given percentage
+        # period can be 'daily', 'weekly', 'monthly'
+        pass
+
+    def calc_distribution(self, period):
+        # TODO: calculate distribution
+        # period can be 'hourly', 'daily', 'weekly', 'monthly'
+        pass
+
+    def calc_cumulative_profit(self):
+        # TODO: calculate cumulative profit and insert into trade_log
+        pass
+
+
+
+
 
 class CurrentTrade:
 

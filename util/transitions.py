@@ -34,10 +34,33 @@ class Transitions:
 
     @staticmethod
     def set_strategies(bt):
+
+        PL = 4
+        offset = 3
+        FTper = 25
+        FTthresh = 2.5
+        maxBars = 1
+
+        indicators = {}
+        indicators['FT'] = FisherTransform(bt, bt.range_bar.Close, FTper)
+        indicators['FTD'] = Diff(bt, indicators['FT'].val, 2)
+        bt.strategies['PL' + str(PL) +
+                      '_FTper' + str(FTper) +
+                      '_offset' + str(offset) +
+                      '_FTthresh' + str(FTthresh) +
+                      '_maxBars' + str(maxBars)] = FT_Quicky_Base(backtest=bt,
+                                                                indicators=indicators,
+                                                                PL=PL,
+                                                                offset=offset,
+                                                                FTdthresh=0.1,
+                                                                FTthresh=FTthresh,
+                                                                maxBars=maxBars)
+        """
+        # FT_QUICKY_BASE for GC
+        indicators = {}
+        indicators['FT'] = FisherTransform(bt, bt.range_bar.Close, 15)
+        indicators['FTD'] = Diff(bt, indicators['FT'].val, 2)
         for PL in range(11, 41):
-            indicators = {}
-            indicators['FT'] = FisherTransform(bt, bt.range_bar.Close, 15)
-            indicators['FTD'] = Diff(bt, indicators['FT'].val, 2)
             bt.strategies['FT_Quicky_Base_PL' + str(PL)] = FT_Quicky_Base(backtest=bt,
                                                                           indicators=indicators,
                                                                           PL=PL,
@@ -45,6 +68,7 @@ class Transitions:
                                                                           FTdthresh=0.1,
                                                                           FTthresh=2.5,
                                                                           maxBars=1)
+        """
 
     def initialize_transitions(self, (instr_name, RANGE, init_day, final_day)):
 
@@ -88,7 +112,8 @@ class Transitions:
 
             bt.daily_tick.df = bt.futures_db.fetch_between_dates(table_name=bt.table_name,
                                                                  start_date=start_date,
-                                                                 end_date=end_date)
+                                                                 end_date=end_date,
+                                                                 )
 
             bt.daily_tick.set_lists()
 
@@ -156,10 +181,19 @@ class Transitions:
     @staticmethod
     def compute_indicators_transitions(bt):
         start_time = time.time()
+
+        # Indicator Parameter Optimization (most general and slowest)
         for strat_name in bt.strategies:
             strat = bt.strategies[strat_name]
             for indicator_name in strat.indicators:
                 strat.indicators[indicator_name].on_bar_update()
+
+        """
+        # Strategy Parameter Optimization (improved speed)
+        strat = bt.strategies[bt.strategies.keys()[0]]
+        for indicator_name in strat.indicators:
+            strat.indicators[indicator_name].on_bar_update()
+        """
 
         global indicator_time
         indicator_time += time.time() - start_time
@@ -181,20 +215,23 @@ class Transitions:
 
         return new_state, bt
 
-    @staticmethod
-    def show_results_transitions(bt):
-
-        for strat_name in bt.strategies:
-            strat = bt.strategies[strat_name]
+    def show_results_transitions(self, bt):
+        stdout.write("\n")
+        strat_name = np.sort(bt.strategies.keys())
+        for s in strat_name:
+            strat = bt.strategies[s]
             strat.trades.convert_to_dataframe()
             strat.trades.trade_log['cum_prof'] = np.cumsum(strat.trades.trade_log['profit'])
+            print "{}: {:.2%} on {} trades with pval: {}".format(s,
+                                                                 strat.trades.calc_win_perc(),
+                                                                 strat.trades.trade_log.shape[0],
+                                                                 strat.trades.calc_pval())
             """
-            #col = ['market_pos', 'entry_price', 'exit_price', 'entry_time', 'exit_time', 'exit_name', 'profit', 'cum_prof']
-            #print strat.trades.trade_log[col]
-            #self.write_results(strat_name, strat)
+            col = ['market_pos', 'entry_price', 'exit_price', 'entry_time', 'exit_time', 'exit_name', 'profit', 'cum_prof']
+            print strat.trades.trade_log[col].head()
             """
+            #self.write_results(s, strat)
 
-        stdout.write("\n")
         print "------------------------------------------------"
         print "    Order time: {:.2f}".format(order_time)
         print "Indicator time: {:.2f}".format(indicator_time)

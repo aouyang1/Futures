@@ -9,10 +9,10 @@ from util.transitions import Transitions
 
 if __name__ == "__main__":
 
-    instr_name = 'GC'
-    RANGE = 10
-    init_day = '2013-09-15 17:00:00'
-    final_day = '2013-09-22 16:59:59'
+    instr_name = 'ZB'
+    RANGE = 4
+    init_day = '2013-09-10 17:00:00'
+    final_day = '2014-11-30 16:59:59'
 
     m = StateMachine()
     t = Transitions()       # next state functions for state machine

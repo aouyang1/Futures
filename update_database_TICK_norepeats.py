@@ -12,9 +12,9 @@ def timestamp_to_SQLstring(timestamp):
     return str(timestamp)[:-6]
 
 
-instr_name = 'GC'
-TICK_SIZE = 0.1
-init_day = '2013-09-10 17:00:00'
+instr_name = 'ZB'
+TICK_SIZE = 1/32.0
+init_day = '2013-09-01 17:00:00'
 final_day = '2014-11-30 16:59:59'
 
 table_name = instr_name + '_LAST'

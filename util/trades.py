@@ -1,6 +1,8 @@
 __author__ = 'aouyang1'
 
 from pandas import DataFrame
+import numpy as np
+from scipy import stats
 
 
 class Trades:
@@ -34,6 +36,20 @@ class Trades:
                                     'exit_name': self.exit_name,
                                     'profit': self.profit})
 
+    def calc_win_perc(self):
+        profit = self.trade_log['profit']
+        num_trades = len(profit)
+        wins = np.sum(profit > 0.0)
+        if num_trades == 0:
+            return 0
+        else:
+            return wins/float(num_trades)
+
+    def calc_pval(self):
+        profit = self.trade_log['profit']
+        num_trades = len(profit)
+        wins = np.sum(profit > 0.0)
+        return stats.binom_test(wins, n=num_trades, p=0.5)
 
 class CurrentTrade:
 

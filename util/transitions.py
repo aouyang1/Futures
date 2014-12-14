@@ -113,7 +113,7 @@ class Transitions:
             bt.daily_tick.df = bt.futures_db.fetch_between_dates(table_name=bt.table_name,
                                                                  start_date=start_date,
                                                                  end_date=end_date,
-                                                                 )
+                                                                 time_zone='US/Central')
 
             bt.daily_tick.set_lists()
 
@@ -231,7 +231,7 @@ class Transitions:
             col = ['market_pos', 'entry_price', 'exit_price', 'entry_time', 'exit_time', 'exit_name', 'profit', 'cum_prof']
             print strat.trades.trade_log[col].head()
             """
-            #self.write_results(s, strat)
+            self.write_results(s, strat)
 
         print "------------------------------------------------"
         print "    Order time: {:.2f}".format(order_time)
@@ -277,7 +277,7 @@ class Transitions:
         df['Profit'] = strat.trades.trade_log['profit']
         df['Cum. profit'] = strat.trades.trade_log['cum_prof']
 
-        folder_name = '/home/aouyang1/Dropbox/Futures Trading/FT_QUICKY_v3/GC/BASE (copy)/PL' + \
+        folder_name = '/home/aouyang1/Dropbox/Futures Trading/FT_QUICKY_ZB_v1/PL' + \
                       re.findall(r'\d+', strat_name)[0] + \
                       '_py_comp/'
 

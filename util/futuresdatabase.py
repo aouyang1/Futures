@@ -1,10 +1,11 @@
-__author__ = 'MOLTRES'
+__author__ = 'aouyang1'
+
 
 import sqlalchemy as sqlalch
 import pandas as pd
 import numpy as np
 from sys import stdout
-import ipdb
+
 
 class FuturesDatabase:
 

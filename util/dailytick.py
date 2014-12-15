@@ -1,3 +1,4 @@
+__author__ = 'aouyang1'
 
 
 class DailyTick:

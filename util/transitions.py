@@ -14,82 +14,50 @@ from pandas.tseries.offsets import *
 import re
 import os
 import ipdb
-from util.backtest import Backtest
 from util.futuresdatabase import FuturesDatabase
 from util.rangebar import RangeBar
 from util.dailytick import DailyTick
-from util.strategies import *
-from util.indicators import *
+from util.setup_backtest import *
 import time
+import datetime
 from sys import stdout
-
-order_time = 0.0
-indicator_time = 0.0
-strategy_time = 0.0
-num_bdays = 0
-day_cnt = 0
 
 
 class Transitions:
 
-    @staticmethod
-    def set_strategies(bt):
+    def __init__(self):
+        self.order_time = 0.0
+        self.indicator_time = 0.0
+        self.strategy_time = 0.0
+        self.num_bdays = 0
+        self.day_cnt = 0
 
-        PL = 4
-        offset = 3
-        FTper = 25
-        FTthresh = 2.5
-        maxBars = 1
+    def initialize_transitions(self, bt):
 
-        indicators = {}
-        indicators['FT'] = FisherTransform(bt, bt.range_bar.Close, FTper)
-        indicators['FTD'] = Diff(bt, indicators['FT'].val, 2)
-        bt.strategies['PL' + str(PL) +
-                      '_FTper' + str(FTper) +
-                      '_offset' + str(offset) +
-                      '_FTthresh' + str(FTthresh) +
-                      '_maxBars' + str(maxBars)] = FT_Quicky_Base(backtest=bt,
-                                                                indicators=indicators,
-                                                                PL=PL,
-                                                                offset=offset,
-                                                                FTdthresh=0.1,
-                                                                FTthresh=FTthresh,
-                                                                maxBars=maxBars)
-        """
-        # FT_QUICKY_BASE for GC
-        indicators = {}
-        indicators['FT'] = FisherTransform(bt, bt.range_bar.Close, 15)
-        indicators['FTD'] = Diff(bt, indicators['FT'].val, 2)
-        for PL in range(11, 41):
-            bt.strategies['FT_Quicky_Base_PL' + str(PL)] = FT_Quicky_Base(backtest=bt,
-                                                                          indicators=indicators,
-                                                                          PL=PL,
-                                                                          offset=3,
-                                                                          FTdthresh=0.1,
-                                                                          FTthresh=2.5,
-                                                                          maxBars=1)
-        """
+        set_backtest_options(bt)
 
-    def initialize_transitions(self, (instr_name, RANGE, init_day, final_day)):
+        bt.table_name = bt.instr_name + '_LAST_COMPRESSED'
 
-        table_name = instr_name + '_LAST_COMPRESSED'
+        start_stamp = pd.Timestamp(bt.init_day).tz_localize('US/Central')
+        bt.start_stamp_utc = start_stamp.tz_convert('utc')
 
-        start_stamp = pd.Timestamp(init_day).tz_localize('US/Central')
-        start_stamp_utc = start_stamp.tz_convert('utc')
+        final_stamp = pd.Timestamp(bt.final_day).tz_localize('US/Central')
+        bt.final_stamp_utc = final_stamp.tz_convert('utc')
 
-        final_stamp = pd.Timestamp(final_day).tz_localize('US/Central')
-        final_stamp_utc = final_stamp.tz_convert('utc')
-
-        global num_bdays
-        num_bdays = len(pd.bdate_range(start_stamp_utc, final_stamp_utc))
-
-        bt = Backtest(table_name, RANGE, start_stamp_utc, final_stamp_utc)
+        self.num_bdays = len(pd.bdate_range(bt.start_stamp_utc, bt.final_stamp_utc))
 
         bt.futures_db = FuturesDatabase()
-        bt.range_bar = RangeBar(instr_name, RANGE)
+        bt.range_bar = RangeBar(bt.instr_name, bt.RANGE)
         bt.daily_tick = DailyTick()
+        set_strategies(bt)
 
-        self.set_strategies(bt)
+        print "Backtest start time: {}".format(pd.Timestamp(datetime.datetime.now()))
+        print "------------------------------------------------"
+        print "Instrument: {}".format(bt.instr_name)
+        print "     Range: {}".format(bt.RANGE)
+        print "     Start: {}".format(bt.init_day)
+        print "       End: {}".format(bt.final_day)
+        print "------------------------------------------------"
 
         new_state = "load_daily_data"
 
@@ -97,18 +65,18 @@ class Transitions:
 
     def load_daily_data_transitions(self, bt):
 
-        global day_cnt
-        stdout.write("\r%s" % "Running: " + str(bt.start_stamp_utc)[0:10] + "   " + str(day_cnt) + "/" + str(num_bdays))
+        stdout.write("\r%s" % "Running: " + str(bt.start_stamp_utc)[0:10] +
+                     "   " + str(self.day_cnt) + "/" + str(self.num_bdays) + " business days completed")
         stdout.flush()
-        day_cnt += 1
+        self.day_cnt += 1
 
         if bt.start_stamp_utc < bt.final_stamp_utc:
-            start_date = self.timestamp_to_SQLstring(bt.start_stamp_utc)
+            start_date = Transitions.timestamp_to_SQLstring(bt.start_stamp_utc)
 
             # get end of day timestamp
             end_stamp_utc = bt.start_stamp_utc + Day() - 45*Minute()
 
-            end_date = self.timestamp_to_SQLstring(end_stamp_utc)
+            end_date = Transitions.timestamp_to_SQLstring(end_stamp_utc)
 
             bt.daily_tick.df = bt.futures_db.fetch_between_dates(table_name=bt.table_name,
                                                                  start_date=start_date,
@@ -124,14 +92,15 @@ class Transitions:
 
         return new_state, bt
 
-    @staticmethod
-    def search_for_event_transitions(bt):
+    def search_for_event_transitions(self, bt):
 
         if bt.daily_tick.cnt < bt.daily_tick.df.shape[0]:
 
             bt.tick = bt.daily_tick.get_curr_tick()
             bt.prev_tick = bt.daily_tick.get_prev_tick()
-            #bt.range_bar.tick_list.append(bt.tick['Last'])
+
+            if bt.log_intrabar_data:
+                bt.range_bar.tick_list.append(bt.tick['Last'])
 
             # check for open orders and determine if they need to be filled
             start_time = time.time()
@@ -140,8 +109,8 @@ class Transitions:
                     strat = bt.strategies[strat_name]
                     if strat.market.position != "FLAT":
                         strat.order.update(bt, strat)
-            global order_time
-            order_time += time.time() - start_time
+
+            self.order_time += time.time() - start_time
 
             # compute range bar HLOC
             if bt.daily_tick.cnt == 0:  # first tick of day session
@@ -178,44 +147,41 @@ class Transitions:
 
         return new_state, bt
 
-    @staticmethod
-    def compute_indicators_transitions(bt):
+    def compute_indicators_transitions(self, bt):
         start_time = time.time()
 
-        # Indicator Parameter Optimization (most general and slowest)
-        for strat_name in bt.strategies:
-            strat = bt.strategies[strat_name]
+        if bt.optimization:
+            # Strategy Parameter Optimization (improved speed)
+            strat = bt.strategies[bt.strategies.keys()[0]]
             for indicator_name in strat.indicators:
                 strat.indicators[indicator_name].on_bar_update()
 
-        """
-        # Strategy Parameter Optimization (improved speed)
-        strat = bt.strategies[bt.strategies.keys()[0]]
-        for indicator_name in strat.indicators:
-            strat.indicators[indicator_name].on_bar_update()
-        """
+        else:
+            # Indicator Parameter Optimization (most general and slowest)
+            for strat_name in bt.strategies:
+                strat = bt.strategies[strat_name]
+                for indicator_name in strat.indicators:
+                    strat.indicators[indicator_name].on_bar_update()
 
-        global indicator_time
-        indicator_time += time.time() - start_time
+        self.indicator_time += time.time() - start_time
 
         new_state = "check_strategy"
 
         return new_state, bt
 
-    @staticmethod
-    def check_strategy_transitions(bt):
+    def check_strategy_transitions(self, bt):
         start_time = time.time()
         for strat_name in bt.strategies:
             bt.strategies[strat_name].on_bar_update()
 
-        global strategy_time
-        strategy_time += time.time() - start_time
+        self.strategy_time += time.time() - start_time
 
         new_state = "search_for_event"
 
         return new_state, bt
 
-    def show_results_transitions(self, bt):
+    def write_results_transitions(self, bt):
+        # TODO: write function to write out range bar data and indicator values (bt.write_bar_data flag)
         stdout.write("\n")
         strat_name = np.sort(bt.strategies.keys())
         for s in strat_name:
@@ -224,28 +190,28 @@ class Transitions:
             strat.trades.trade_log['cum_prof'] = np.cumsum(strat.trades.trade_log['profit'])
             winperc, winperc_pval = strat.trades.calc_win_perc()
             print "{}: {:.2%} on {} trades with pval: {:.6f}".format(s,
-                                                                 winperc,
-                                                                 strat.trades.trade_log.shape[0],
-                                                                 winperc_pval)
-            """
-            col = ['market_pos', 'entry_price', 'exit_price', 'entry_time', 'exit_time', 'exit_name', 'profit', 'cum_prof']
-            print strat.trades.trade_log[col].head()
-            """
-            self.write_results(s, strat)
+                                                                     winperc,
+                                                                     strat.trades.trade_log.shape[0],
+                                                                     winperc_pval)
+
+            if bt.write_trade_data:
+                Transitions.write_results_as_csv(s, strat)
 
         print "------------------------------------------------"
-        print "    Order time: {:.2f}".format(order_time)
-        print "Indicator time: {:.2f}".format(indicator_time)
-        print " Strategy time: {:.2f}".format(strategy_time)
+        print "    Order time: {:.2f}".format(self.order_time)
+        print "Indicator time: {:.2f}".format(self.indicator_time)
+        print " Strategy time: {:.2f}".format(self.strategy_time)
         print "------------------------------------------------"
         new_state = "finished"
 
         return new_state, bt
 
-    def timestamp_to_SQLstring(self, timestamp):
+    @staticmethod
+    def timestamp_to_SQLstring(timestamp):
         return str(timestamp)[:-6]
 
-    def write_results(self, strat_name, strat):
+    @staticmethod
+    def write_results_as_csv(strat_name, strat):
         header = ['Trade-#',
                   'Instrument',
                   'Account',

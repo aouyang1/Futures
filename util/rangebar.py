@@ -1,4 +1,6 @@
-import time
+__author__ = 'aouyang1'
+
+
 from util.instrument import InstrumentTraits
 from util.hloc import CurrentHLOC
 

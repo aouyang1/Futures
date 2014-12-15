@@ -63,9 +63,6 @@ class Trades:
         pass
 
 
-
-
-
 class CurrentTrade:
 
     def __init__(self):

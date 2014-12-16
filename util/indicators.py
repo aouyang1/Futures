@@ -61,7 +61,7 @@ class LinRegSlope:
             self.val.insert(0, coeff[0])
 
         else:
-            self.val.insert(0, 0)
+            self.val.insert(0, 0.0)
 
 
 class Diff:
@@ -76,7 +76,8 @@ class Diff:
 
         if self.bt.range_bar.cnt >= self.period:
             self.val.insert(0, self.dataseries[0] - self.dataseries[self.period-1])
-
+        else:
+            self.val.insert(0, 0.0)
 
 
 

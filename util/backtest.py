@@ -24,7 +24,9 @@ class Backtest:
         self.optimization = False
         self.log_intrabar_data = False
         self.write_trade_data = False
+        self.trade_data_root = ''
         self.write_bar_data = False
+        self.bar_data_root = ''
 
 
 

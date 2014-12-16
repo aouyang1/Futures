@@ -49,32 +49,14 @@ class RangeBar:
 
         if bt.tick['Last'] != bt.prev_tick['Last']:
             if round((bt.tick['Last']-self.curr.Low)/self.instr.TICK_SIZE) > self.RANGE:    # check if range has broken above
-
-                while round((bt.tick['Last'] - self.curr.Low)/self.instr.TICK_SIZE) > self.RANGE:
-                    self.curr.High = self.curr.Low + self.RANGE*self.instr.TICK_SIZE
-                    self.curr.Close = self.curr.High
-                    self.close()
-
-                    self.curr.Low = self.Close[0] + self.instr.TICK_SIZE
-                    self.curr.Open = self.curr.Low
-                    self.curr.Volume = 0
-
-                self.curr.High = bt.tick['Last']
-                self.curr.Close = bt.tick['Last']
+                self.curr.High = self.curr.Low + self.RANGE*self.instr.TICK_SIZE
+                self.curr.Close = self.curr.High
+                self.close()
 
             elif round((self.curr.High-bt.tick['Last'])/self.instr.TICK_SIZE) > self.RANGE: # check if range has broken below
-
-                while round((self.curr.High - bt.tick['Last'])/self.instr.TICK_SIZE) > self.RANGE:
-                    self.curr.Low = self.curr.High - self.RANGE*self.instr.TICK_SIZE
-                    self.curr.Close = self.curr.Low
-                    self.close()
-
-                    self.curr.High = self.Close[0] - self.instr.TICK_SIZE
-                    self.curr.Open = self.curr.High
-                    self.curr.Volume = 0
-
-                self.curr.Low = bt.tick['Last']
-                self.curr.Close = bt.tick['Last']
+                self.curr.Low = self.curr.High - self.RANGE*self.instr.TICK_SIZE
+                self.curr.Close = self.curr.Low
+                self.close()
 
             elif bt.tick['Last'] > self.curr.High:                          # check if new high in bar is made
                 self.curr.High = bt.tick['Last']

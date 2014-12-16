@@ -27,6 +27,7 @@ class Transitions:
 
     def __init__(self):
         self.order_time = 0.0
+        self.bar_time = 0.0
         self.indicator_time = 0.0
         self.strategy_time = 0.0
         self.num_bdays = 0
@@ -85,14 +86,15 @@ class Transitions:
 
             bt.daily_tick.set_lists()
 
-            new_state = "search_for_event"
+            #new_state = "search_for_event"
+            new_state = "check_orders"
 
         else:
             new_state = "show_results"
 
         return new_state, bt
 
-    def search_for_event_transitions(self, bt):
+    def check_orders_transitions(self, bt):
 
         if bt.daily_tick.cnt < bt.daily_tick.df.shape[0]:
 
@@ -112,25 +114,7 @@ class Transitions:
 
             self.order_time += time.time() - start_time
 
-            # compute range bar HLOC
-            if bt.daily_tick.cnt == 0:  # first tick of day session
-                bt.range_bar.init(bt)
-
-            elif bt.daily_tick.cnt == (bt.daily_tick.df.shape[0]-1):  # last tick of day session
-                bt.range_bar.update(bt)
-                bt.range_bar.close()
-
-            else:  # normal range bar check and update
-                bt.range_bar.update(bt)
-
-            # next state logic
-            if bt.range_bar.event_found:
-                new_state = "compute_indicators"
-                bt.range_bar.event_found = False
-            else:
-                new_state = "search_for_event"
-
-            bt.daily_tick.cnt += 1
+            new_state = "update_range_bar"
 
         else:
 
@@ -144,6 +128,30 @@ class Transitions:
                 bt.start_stamp_utc += 2*Day()
 
             new_state = "load_daily_data"
+
+        return new_state, bt
+
+    def update_range_bar_transitions(self, bt):
+
+        # compute range bar HLOC
+        if bt.daily_tick.cnt == 0:  # first tick of day session
+            bt.range_bar.init(bt)
+
+        elif bt.daily_tick.cnt == (bt.daily_tick.df.shape[0]-1):  # last tick of day session
+            bt.range_bar.update(bt)
+            bt.range_bar.close()
+
+        else:  # normal range bar check and update
+            bt.range_bar.update(bt)
+
+        # next state logic
+        if bt.range_bar.event_found:
+            new_state = "compute_indicators"
+            bt.range_bar.event_found = False
+        else:
+            new_state = "check_orders"
+
+        bt.daily_tick.cnt += 1
 
         return new_state, bt
 
@@ -176,12 +184,37 @@ class Transitions:
 
         self.strategy_time += time.time() - start_time
 
-        new_state = "search_for_event"
+        # TODO: Refactor portion to new state (check_range_bar_finished)
+        if round((bt.tick['Last'] - bt.range_bar.curr.Low)/bt.range_bar.instr.TICK_SIZE) > bt.range_bar.RANGE:
+            bt.range_bar.curr.Low = bt.range_bar.Close[0] + bt.range_bar.instr.TICK_SIZE
+            bt.range_bar.curr.Open = bt.range_bar.curr.Low
+            bt.range_bar.curr.Volume = 0
+
+            if round((bt.tick['Last'] - bt.range_bar.curr.Low)/bt.range_bar.instr.TICK_SIZE) > bt.range_bar.RANGE:
+                new_state = "update_range_bar"
+            else:
+                bt.range_bar.curr.High = bt.tick['Last']
+                bt.range_bar.curr.Close = bt.tick['Last']
+                new_state = "check_orders"
+
+        elif round((bt.range_bar.curr.High-bt.tick['Last'])/bt.range_bar.instr.TICK_SIZE) > bt.range_bar.RANGE:
+            bt.range_bar.curr.High = bt.range_bar.Close[0] - bt.range_bar.instr.TICK_SIZE
+            bt.range_bar.curr.Open = bt.range_bar.curr.High
+            bt.range_bar.curr.Volume = 0
+
+            if round((bt.range_bar.curr.High-bt.tick['Last'])/bt.range_bar.instr.TICK_SIZE) > bt.range_bar.RANGE:
+                new_state = "update_range_bar"
+            else:
+                bt.range_bar.curr.Low = bt.tick['Last']
+                bt.range_bar.curr.Close = bt.tick['Last']
+                new_state = "check_orders"
+        else:
+            bt.range_bar.event_found = False
+            new_state = "check_orders"
 
         return new_state, bt
 
     def write_results_transitions(self, bt):
-        # TODO: write function to write out range bar data and indicator values (bt.write_bar_data flag)
         stdout.write("\n")
         strat_name = np.sort(bt.strategies.keys())
         for s in strat_name:
@@ -195,7 +228,10 @@ class Transitions:
                                                                      winperc_pval)
 
             if bt.write_trade_data:
-                Transitions.write_results_as_csv(s, strat)
+                Transitions.write_results_as_csv(bt, s, strat)
+
+        if bt.write_bar_data:
+            Transitions.write_bar_as_csv(bt)
 
         print "------------------------------------------------"
         print "    Order time: {:.2f}".format(self.order_time)
@@ -211,7 +247,7 @@ class Transitions:
         return str(timestamp)[:-6]
 
     @staticmethod
-    def write_results_as_csv(strat_name, strat):
+    def write_results_as_csv(backtest, strat_name, strat):
         header = ['Trade-#',
                   'Instrument',
                   'Account',
@@ -243,9 +279,7 @@ class Transitions:
         df['Profit'] = strat.trades.trade_log['profit']
         df['Cum. profit'] = strat.trades.trade_log['cum_prof']
 
-        folder_name = '/home/aouyang1/Dropbox/Futures Trading/FT_QUICKY_ZB_v1/PL' + \
-                      re.findall(r'\d+', strat_name)[0] + \
-                      '_py_comp/'
+        folder_name = backtest.trade_data_root + '/PL' + re.findall(r'\d+', strat_name)[0] + '/'
 
         if not os.path.isdir(folder_name):
             os.mkdir(folder_name)
@@ -253,3 +287,22 @@ class Transitions:
         pathname = folder_name + strat_name + '.csv'
 
         df.to_csv(path_or_buf=pathname, index=False)
+
+    @staticmethod
+    def write_bar_as_csv(bt):
+        # TODO: write function to write out range bar data and indicator values (bt.write_bar_data flag)
+        range_bar_df = DataFrame({'Date': bt.range_bar.CloseTime,
+                                  'H': bt.range_bar.High,
+                                  'L': bt.range_bar.Low,
+                                  'O': bt.range_bar.Open,
+                                  'C': bt.range_bar.Close}, columns=['Date', 'H', 'L', 'O', 'C'])
+
+        print range_bar_df.shape
+        strat = bt.strategies[bt.strategies.keys()[0]]
+        for indicator_name in strat.indicators:
+            #range_bar_df[indicator_name] = strat.indicators[indicator_name].val
+            print len(strat.indicators[indicator_name].val)
+
+
+        print range_bar_df.head()
+        print range_bar_df.tail()

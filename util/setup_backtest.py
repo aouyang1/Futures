@@ -9,14 +9,16 @@ from util.indicators import *
 def set_backtest_options(bt):
     bt.instr_name = 'GC'
     bt.RANGE = 10
-    bt.init_day = '2013-09-10 17:00:00'
-    bt.final_day = '2013-09-30 16:59:59'
+    bt.init_day = '2013-09-12 17:00:00'
+    bt.final_day = '2013-09-17 23:00:00'
 
     bt.optimization = True
     bt.log_intrabar_data = False
+
     bt.write_trade_data = False
-    # TODO: manage how to declare a folder name for trade data
-    bt.write_bar_data = False
+    bt.trade_data_root = '/home/aouyang1/Dropbox/Futures Trading/FT_QUICKY_ZB_v1'
+
+    bt.write_bar_data = True
     # TODO: manage how to declare a file name for bar data
 
 

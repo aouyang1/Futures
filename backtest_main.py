@@ -12,7 +12,8 @@ if __name__ == "__main__":
 
     m.add_state("initialize", t.initialize_transitions)
     m.add_state("load_daily_data", t.load_daily_data_transitions)
-    m.add_state("search_for_event", t.search_for_event_transitions)
+    m.add_state("check_orders", t.check_orders_transitions)
+    m.add_state("update_range_bar", t.update_range_bar_transitions)
     m.add_state("compute_indicators", t.compute_indicators_transitions)
     m.add_state("check_strategy", t.check_strategy_transitions)
     m.add_state("show_results", t.write_results_transitions)

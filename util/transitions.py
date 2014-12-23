@@ -26,8 +26,9 @@ from sys import stdout
 class Transitions:
 
     def __init__(self):
-        self.order_time = 0.0
+        self.fetch_time = 0.0
         self.bar_time = 0.0
+        self.order_time = 0.0
         self.indicator_time = 0.0
         self.strategy_time = 0.0
         self.num_bdays = 0
@@ -71,7 +72,11 @@ class Transitions:
         stdout.flush()
         self.day_cnt += 1
 
+
+
         if bt.start_stamp_utc < bt.final_stamp_utc:
+            start_time = time.time()
+
             start_date = Transitions.timestamp_to_SQLstring(bt.start_stamp_utc)
 
             # get end of day timestamp
@@ -86,7 +91,8 @@ class Transitions:
 
             bt.daily_tick.set_lists()
 
-            #new_state = "search_for_event"
+            self.fetch_time += time.time() - start_time
+
             new_state = "check_orders"
 
         else:
@@ -97,7 +103,7 @@ class Transitions:
     def check_orders_transitions(self, bt):
 
         if bt.daily_tick.cnt < bt.daily_tick.df.shape[0]:
-
+            start_time = time.time()
             bt.tick = bt.daily_tick.get_curr_tick()
             bt.prev_tick = bt.daily_tick.get_prev_tick()
 
@@ -105,7 +111,7 @@ class Transitions:
                 bt.range_bar.tick_list.append(bt.tick['Last'])
 
             # check for open orders and determine if they need to be filled
-            start_time = time.time()
+
             if bt.tick['Last'] != bt.prev_tick['Last']:
                 for strat_name in bt.strategies:
                     strat = bt.strategies[strat_name]
@@ -133,6 +139,8 @@ class Transitions:
 
     def update_range_bar_transitions(self, bt):
 
+        start_time = time.time()
+
         # compute range bar HLOC
         if bt.daily_tick.cnt == 0:  # first tick of day session
             bt.range_bar.init(bt)
@@ -152,6 +160,8 @@ class Transitions:
             new_state = "check_orders"
 
         bt.daily_tick.cnt += 1
+
+        self.bar_time += time.time() - start_time
 
         return new_state, bt
 
@@ -184,7 +194,15 @@ class Transitions:
 
         self.strategy_time += time.time() - start_time
 
-        # TODO: Refactor portion to new state (check_range_bar_finished)
+        new_state = "check_range_bar_finished"
+
+        return new_state, bt
+
+    # necessary in the case that a tick exceeds more than 1 range bar
+    def check_range_bar_finished_transitions(self, bt):
+
+        start_time = time.time()
+
         if round((bt.tick['Last'] - bt.range_bar.curr.Low)/bt.range_bar.instr.TICK_SIZE) > bt.range_bar.RANGE:
             bt.range_bar.curr.Low = bt.range_bar.Close[0] + bt.range_bar.instr.TICK_SIZE
             bt.range_bar.curr.Open = bt.range_bar.curr.Low
@@ -212,6 +230,8 @@ class Transitions:
             bt.range_bar.event_found = False
             new_state = "check_orders"
 
+        self.bar_time += time.time() - start_time
+
         return new_state, bt
 
     def write_results_transitions(self, bt):
@@ -234,6 +254,8 @@ class Transitions:
             Transitions.write_bar_as_csv(bt)
 
         print "------------------------------------------------"
+        print "    Fetch time: {:.2f}".format(self.fetch_time)
+        print "      Bar time: {:.2f}".format(self.bar_time)
         print "    Order time: {:.2f}".format(self.order_time)
         print "Indicator time: {:.2f}".format(self.indicator_time)
         print " Strategy time: {:.2f}".format(self.strategy_time)
@@ -290,19 +312,22 @@ class Transitions:
 
     @staticmethod
     def write_bar_as_csv(bt):
-        # TODO: write function to write out range bar data and indicator values (bt.write_bar_data flag)
         range_bar_df = DataFrame({'Date': bt.range_bar.CloseTime,
                                   'H': bt.range_bar.High,
                                   'L': bt.range_bar.Low,
                                   'O': bt.range_bar.Open,
                                   'C': bt.range_bar.Close}, columns=['Date', 'H', 'L', 'O', 'C'])
 
-        print range_bar_df.shape
         strat = bt.strategies[bt.strategies.keys()[0]]
         for indicator_name in strat.indicators:
-            #range_bar_df[indicator_name] = strat.indicators[indicator_name].val
-            print len(strat.indicators[indicator_name].val)
+            range_bar_df[indicator_name] = strat.indicators[indicator_name].val
 
+        print range_bar_df.head(n=3)
+        print range_bar_df.tail(n=3)
 
-        print range_bar_df.head()
-        print range_bar_df.tail()
+        if not os.path.isdir(bt.bar_data_root):
+            os.mkdir(bt.bar_data_root)
+
+        pathname = bt.bar_data_root + bt.strategies.keys()[0] + '.csv'
+
+        range_bar_df.to_csv(path_or_buf=pathname, index=False)

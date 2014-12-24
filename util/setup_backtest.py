@@ -9,8 +9,8 @@ from util.indicators import *
 def set_backtest_options(bt):
     bt.instr_name = 'GC'
     bt.RANGE = 10
-    bt.init_day = '2013-09-12 17:00:00'
-    bt.final_day = '2013-09-17 23:00:00'
+    bt.init_day = '2013-09-10 17:00:00'
+    bt.final_day = '2014-11-30 16:59:59'
 
     bt.optimization = True          # if indicators are the same across all strategies, set True
     bt.log_intrabar_data = False    # setting true can significantly slowdown backtesting

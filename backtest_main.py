@@ -4,6 +4,8 @@ import time
 from util.statemachine import StateMachine
 from util.transitions import Transitions
 from util.backtest import Backtest
+import cProfile
+import pstats
 
 if __name__ == "__main__":
 
@@ -24,7 +26,10 @@ if __name__ == "__main__":
 
     start_time = time.time()
     bt = Backtest()
-    m.run(bt)
+    cProfile.run('m.run(bt)', 'backtest_profile')
     elapsed_time = time.time() - start_time
 
     print "Total time: {}".format(elapsed_time)
+
+    p = pstats.Stats('backtest_profile')
+    p.strip_dirs().sort_stats('cumulative').print_stats('transitions')

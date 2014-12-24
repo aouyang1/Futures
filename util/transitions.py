@@ -26,11 +26,6 @@ from sys import stdout
 class Transitions:
 
     def __init__(self):
-        self.fetch_time = 0.0
-        self.bar_time = 0.0
-        self.order_time = 0.0
-        self.indicator_time = 0.0
-        self.strategy_time = 0.0
         self.num_bdays = 0
         self.day_cnt = 0
 
@@ -72,10 +67,7 @@ class Transitions:
         stdout.flush()
         self.day_cnt += 1
 
-
-
         if bt.start_stamp_utc < bt.final_stamp_utc:
-            start_time = time.time()
 
             start_date = Transitions.timestamp_to_SQLstring(bt.start_stamp_utc)
 
@@ -91,8 +83,6 @@ class Transitions:
 
             bt.daily_tick.set_lists()
 
-            self.fetch_time += time.time() - start_time
-
             new_state = "check_orders"
 
         else:
@@ -103,22 +93,16 @@ class Transitions:
     def check_orders_transitions(self, bt):
 
         if bt.daily_tick.cnt < bt.daily_tick.df.shape[0]:
-            start_time = time.time()
-            bt.tick = bt.daily_tick.get_curr_tick()
-            bt.prev_tick = bt.daily_tick.get_prev_tick()
 
             if bt.log_intrabar_data:
-                bt.range_bar.tick_list.append(bt.tick['Last'])
+                bt.range_bar.tick_list.append(bt.daily_tick.curr_last())
 
             # check for open orders and determine if they need to be filled
-
-            if bt.tick['Last'] != bt.prev_tick['Last']:
+            if bt.daily_tick.curr_last() != bt.daily_tick.prev_last():
                 for strat_name in bt.strategies:
                     strat = bt.strategies[strat_name]
                     if strat.market.position != "FLAT":
                         strat.order.update(bt, strat)
-
-            self.order_time += time.time() - start_time
 
             new_state = "update_range_bar"
 
@@ -139,15 +123,14 @@ class Transitions:
 
     def update_range_bar_transitions(self, bt):
 
-        start_time = time.time()
-
         # compute range bar HLOC
         if bt.daily_tick.cnt == 0:  # first tick of day session
             bt.range_bar.init(bt)
 
         elif bt.daily_tick.cnt == (bt.daily_tick.df.shape[0]-1):  # last tick of day session
             bt.range_bar.update(bt)
-            bt.range_bar.close()
+            if not bt.range_bar.event_found:
+                bt.range_bar.close()
 
         else:  # normal range bar check and update
             bt.range_bar.update(bt)
@@ -155,18 +138,13 @@ class Transitions:
         # next state logic
         if bt.range_bar.event_found:
             new_state = "compute_indicators"
-            bt.range_bar.event_found = False
         else:
+            bt.daily_tick.cnt += 1
             new_state = "check_orders"
-
-        bt.daily_tick.cnt += 1
-
-        self.bar_time += time.time() - start_time
 
         return new_state, bt
 
     def compute_indicators_transitions(self, bt):
-        start_time = time.time()
 
         if bt.optimization:
             # Strategy Parameter Optimization (improved speed)
@@ -181,18 +159,14 @@ class Transitions:
                 for indicator_name in strat.indicators:
                     strat.indicators[indicator_name].on_bar_update()
 
-        self.indicator_time += time.time() - start_time
-
         new_state = "check_strategy"
 
         return new_state, bt
 
     def check_strategy_transitions(self, bt):
-        start_time = time.time()
+
         for strat_name in bt.strategies:
             bt.strategies[strat_name].on_bar_update()
-
-        self.strategy_time += time.time() - start_time
 
         new_state = "check_range_bar_finished"
 
@@ -201,41 +175,43 @@ class Transitions:
     # necessary in the case that a tick exceeds more than 1 range bar
     def check_range_bar_finished_transitions(self, bt):
 
-        start_time = time.time()
+        bt.range_bar.event_found = False
 
-        if round((bt.tick['Last'] - bt.range_bar.curr.Low)/bt.range_bar.instr.TICK_SIZE) > bt.range_bar.RANGE:
+        if round((bt.daily_tick.curr_last() - bt.range_bar.curr.Low)/bt.range_bar.instr.TICK_SIZE) > bt.range_bar.RANGE:
             bt.range_bar.curr.Low = bt.range_bar.Close[0] + bt.range_bar.instr.TICK_SIZE
             bt.range_bar.curr.Open = bt.range_bar.curr.Low
             bt.range_bar.curr.Volume = 0
 
-            if round((bt.tick['Last'] - bt.range_bar.curr.Low)/bt.range_bar.instr.TICK_SIZE) > bt.range_bar.RANGE:
+            if round((bt.daily_tick.curr_last() - bt.range_bar.curr.Low)/bt.range_bar.instr.TICK_SIZE) > bt.range_bar.RANGE:
                 new_state = "update_range_bar"
             else:
-                bt.range_bar.curr.High = bt.tick['Last']
-                bt.range_bar.curr.Close = bt.tick['Last']
+                bt.range_bar.curr.High = bt.daily_tick.curr_last()
+                bt.range_bar.curr.Close = bt.daily_tick.curr_last()
+                bt.daily_tick.cnt += 1
                 new_state = "check_orders"
 
-        elif round((bt.range_bar.curr.High-bt.tick['Last'])/bt.range_bar.instr.TICK_SIZE) > bt.range_bar.RANGE:
+        elif round((bt.range_bar.curr.High-bt.daily_tick.curr_last())/bt.range_bar.instr.TICK_SIZE) > bt.range_bar.RANGE:
             bt.range_bar.curr.High = bt.range_bar.Close[0] - bt.range_bar.instr.TICK_SIZE
             bt.range_bar.curr.Open = bt.range_bar.curr.High
             bt.range_bar.curr.Volume = 0
 
-            if round((bt.range_bar.curr.High-bt.tick['Last'])/bt.range_bar.instr.TICK_SIZE) > bt.range_bar.RANGE:
+            if round((bt.range_bar.curr.High-bt.daily_tick.curr_last())/bt.range_bar.instr.TICK_SIZE) > bt.range_bar.RANGE:
                 new_state = "update_range_bar"
             else:
-                bt.range_bar.curr.Low = bt.tick['Last']
-                bt.range_bar.curr.Close = bt.tick['Last']
+                bt.range_bar.curr.Low = bt.daily_tick.curr_last()
+                bt.range_bar.curr.Close = bt.daily_tick.curr_last()
+                bt.daily_tick.cnt += 1
                 new_state = "check_orders"
         else:
-            bt.range_bar.event_found = False
+            bt.daily_tick.cnt += 1
             new_state = "check_orders"
-
-        self.bar_time += time.time() - start_time
 
         return new_state, bt
 
     def write_results_transitions(self, bt):
+
         stdout.write("\n")
+
         strat_name = np.sort(bt.strategies.keys())
         for s in strat_name:
             strat = bt.strategies[s]
@@ -253,13 +229,6 @@ class Transitions:
         if bt.write_bar_data:
             Transitions.write_bar_as_csv(bt)
 
-        print "------------------------------------------------"
-        print "    Fetch time: {:.2f}".format(self.fetch_time)
-        print "      Bar time: {:.2f}".format(self.bar_time)
-        print "    Order time: {:.2f}".format(self.order_time)
-        print "Indicator time: {:.2f}".format(self.indicator_time)
-        print " Strategy time: {:.2f}".format(self.strategy_time)
-        print "------------------------------------------------"
         new_state = "finished"
 
         return new_state, bt
@@ -319,9 +288,14 @@ class Transitions:
                                   'C': bt.range_bar.Close}, columns=['Date', 'H', 'L', 'O', 'C'])
 
         strat = bt.strategies[bt.strategies.keys()[0]]
+        #print len(bt.range_bar.Close)
+        #print bt.range_bar.CloseTime[0:5]
+        #print bt.range_bar.CloseTime[-1:-6]
         for indicator_name in strat.indicators:
+            #print len(strat.indicators[indicator_name].val)
             range_bar_df[indicator_name] = strat.indicators[indicator_name].val
 
+        """
         print range_bar_df.head(n=3)
         print range_bar_df.tail(n=3)
 
@@ -331,3 +305,4 @@ class Transitions:
         pathname = bt.bar_data_root + bt.strategies.keys()[0] + '.csv'
 
         range_bar_df.to_csv(path_or_buf=pathname, index=False)
+        """

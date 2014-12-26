@@ -28,10 +28,11 @@ class Transitions:
     def __init__(self):
         self.num_bdays = 0
         self.day_cnt = 0
+        self.backtest_start_time = 0
 
     def initialize_transitions(self, bt):
 
-        set_backtest_options(bt)
+        self.backtest_start_time = time.time()
 
         bt.table_name = bt.instr_name + '_LAST_COMPRESSED'
 
@@ -65,6 +66,15 @@ class Transitions:
         stdout.write("\r%s" % "Running: " + str(bt.start_stamp_utc)[0:10] +
                      "   " + str(self.day_cnt) + "/" + str(self.num_bdays) + " business days completed")
         stdout.flush()
+
+        if bt.gui:
+            bt.gui.progressBar_backtest.setValue(self.day_cnt/float(self.num_bdays)*100)
+            if self.day_cnt > 0:
+                elapsed_time = time.time() - self.backtest_start_time
+                days_remaining = self.num_bdays - self.day_cnt
+                time_remaining_sec = round(days_remaining/float(self.day_cnt)*elapsed_time)
+                bt.gui.label_time_remaining.setText("Time Remaining: " + str(datetime.timedelta(seconds=time_remaining_sec)))
+
         self.day_cnt += 1
 
         if bt.start_stamp_utc < bt.final_stamp_utc:
@@ -209,6 +219,9 @@ class Transitions:
         return new_state, bt
 
     def write_results_transitions(self, bt):
+
+        if bt.gui:
+            bt.gui.progressBar_backtest.setValue(100)
 
         stdout.write("\n")
 

@@ -3,7 +3,9 @@ __author__ = 'aouyang1'
 
 class Backtest:
 
-    def __init__(self):
+    def __init__(self, gui=None):
+        self.gui = gui
+
         self.table_name = None
         self.RANGE = None
         self.init_day = None

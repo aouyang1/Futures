@@ -6,7 +6,7 @@ from matplotlib.figure import Figure
 class MplCanvas(FigureCanvas):
 	def __init__(self):
 		self.fig = Figure(facecolor='w')
-		self.ax = self.fig.add_axes([0.07,0.04,1,1])
+		self.ax = self.fig.add_axes([0.07,0.04,0.92,1])
 		FigureCanvas.__init__(self, self.fig)
 		FigureCanvas.setSizePolicy(self, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
 		FigureCanvas.updateGeometry(self)

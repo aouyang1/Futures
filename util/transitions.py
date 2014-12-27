@@ -68,10 +68,10 @@ class Transitions:
         stdout.flush()
 
         if bt.gui:
-            bt.gui.progressBar_backtest.setValue(self.day_cnt/float(self.num_bdays)*100)
+            bt.gui.progressBar_backtest.setValue(min(self.day_cnt/float(self.num_bdays)*100, 100))
             if self.day_cnt > 0:
                 elapsed_time = time.time() - self.backtest_start_time
-                days_remaining = self.num_bdays - self.day_cnt
+                days_remaining = max(self.num_bdays - self.day_cnt, 0)
                 time_remaining_sec = round(days_remaining/float(self.day_cnt)*elapsed_time)
                 bt.gui.label_time_remaining.setText("Time Remaining: " + str(datetime.timedelta(seconds=time_remaining_sec)))
 

@@ -24,17 +24,43 @@ class DesignerMainWindow(QtGui.QMainWindow, Ui_MainWindow):
 		super(DesignerMainWindow, self).__init__(parent)
 		self.setupUi(self)
 
+		self.text = open('util/setup_backtest.py','r').read()
+		self.textEdit_setup_backtest.setText(self.text)
+
+		self.tabWidget.setTabEnabled(1, False)
+
 		QtCore.QObject.connect(self.pushButton_run_backtest, QtCore.SIGNAL("clicked()"), self.run_backtest)
 		QtCore.QObject.connect(self.horizontalScrollBar_range_bar, QtCore.SIGNAL("valueChanged(int)"), self.scroll_bars)
 		QtCore.QObject.connect(self.horizontalSlider_bar_zoom, QtCore.SIGNAL("valueChanged(int)"), self.zoom_bars)
-
-		self.tabWidget.setTabEnabled(1, False)
+		QtCore.QObject.connect(self.pushButton_save_setup, QtCore.SIGNAL("clicked()"), self.save_setup)
+		QtCore.QObject.connect(self.textEdit_setup_backtest, QtCore.SIGNAL("textChanged()"), self.check_file_changed)
+		QtCore.QObject.connect(self.pushButton_revert_setup, QtCore.SIGNAL("clicked()"), self.revert_setup)
 
 		self.bt = Backtest(self)
 		self.min_bar_lookback = 50
 		self.bar_len = 0
 		self.zoom = 0
 		self.bars_in_view = 50
+
+	def revert_setup(self):
+		curr_text = str(self.textEdit_setup_backtest.toPlainText())
+		if curr_text != self.text:
+			self.textEdit_setup_backtest.setText(self.text)
+			self.label_setup_backtest.setText("setup_backtest.py")
+
+	def save_setup(self):
+		curr_text = str(self.textEdit_setup_backtest.toPlainText())
+		if curr_text != self.text:
+			open('util/setup_backtest.py','w').write(curr_text)
+			self.label_setup_backtest.setText("setup_backtest.py")
+			self.text = curr_text
+
+	def check_file_changed(self):
+		curr_text = str(self.textEdit_setup_backtest.toPlainText())
+		if curr_text == self.text:
+			self.label_setup_backtest.setText("setup_backtest.py")
+		else:
+			self.label_setup_backtest.setText("setup_backtest.py*")		
 
 	def zoom_bars(self):
 		val = self.horizontalSlider_bar_zoom.value()
@@ -118,9 +144,7 @@ class DesignerMainWindow(QtGui.QMainWindow, Ui_MainWindow):
 		self.bt.init_day = str(self.dateEdit_start_date.date().toString("yyyy-MM-dd")) + " 17:00:00"
 		self.bt.final_day = str(self.dateEdit_end_date.date().toString("yyyy-MM-dd")) + " 16:59:59"
 
-		self.bt.optimization = self.checkBox_optimize.isChecked()          # if indicators are the same across all strategies, set True
 		self.bt.log_intrabar_data = self.checkBox_log_intrabar_data.isChecked()    # setting true can significantly slowdown backtesting
-
 		self.bt.write_trade_data = self.checkBox_write_trade_data.isChecked()
 		self.bt.trade_data_root = '/home/aouyang1/Dropbox/Futures Trading/FT_QUICKY_v3/BASE (copy)'
 

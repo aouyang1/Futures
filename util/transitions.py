@@ -48,6 +48,7 @@ class Transitions:
         bt.range_bar = RangeBar(bt.instr_name, bt.RANGE)
         bt.daily_tick = DailyTick()
         set_strategies(bt)
+        Transitions.determine_optimization(bt)
 
         print "Backtest start time: {}".format(pd.Timestamp(datetime.datetime.now()))
         print "------------------------------------------------"
@@ -249,6 +250,13 @@ class Transitions:
     @staticmethod
     def timestamp_to_SQLstring(timestamp):
         return str(timestamp)[:-6]
+
+    @staticmethod
+    def determine_optimization(bt):
+        bt.unique_indicators = list(set([bt.strategies[strat_name].indicators[indicator_name]
+                                         for strat_name in bt.strategies
+                                         for indicator_name in bt.strategies[strat_name].indicators]))
+        bt.optimization = len(bt.unique_indicators) == len(bt.strategies[bt.strategies.keys()[0]].indicators)
 
     @staticmethod
     def write_results_as_csv(backtest, strat_name, strat):

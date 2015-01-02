@@ -22,6 +22,7 @@ class Backtest:
         self.prev_tick = None
 
         self.strategies = {}
+        self.unique_indicators = []
 
         self.optimization = False
         self.log_intrabar_data = False

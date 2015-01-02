@@ -1,6 +1,6 @@
 __author__ = 'aouyang1'
 
-
+import ipdb
 from util.strategies import *
 from util.indicators import *
 
@@ -9,7 +9,7 @@ from util.indicators import *
 def set_backtest_options(bt):
     bt.instr_name = 'GC'
     bt.RANGE = 10
-    bt.init_day = '2013-09-10 17:00:00'
+    bt.init_day = '2014-09-10 17:00:00'
     bt.final_day = '2014-11-30 16:59:59'
 
     bt.optimization = True          # if indicators are the same across all strategies, set True
@@ -29,7 +29,19 @@ def set_strategies(bt):
     indicators = {}
     indicators['FT'] = FisherTransform(bt, bt.range_bar.Close, 15)
     indicators['FTD'] = Diff(bt, indicators['FT'].val, 2)
-    for PL in range(17, 18):
+    bt.strategies['FT_Quicky_Base_PL17'] = FT_Quicky_Base(backtest=bt,
+                                                                      indicators=indicators,
+                                                                      PL=17,
+                                                                      offset=3,
+                                                                      FTdthresh=0.1,
+                                                                      FTthresh=2.5,
+                                                                      maxBars=1)
+    """
+    # FT_QUICKY_BASE for GC
+    for PL in range(17, 25):
+        indicators = {}
+        indicators['FT'] = FisherTransform(bt, bt.range_bar.Close, 15)
+        indicators['FTD'] = Diff(bt, indicators['FT'].val, 2)
         bt.strategies['FT_Quicky_Base_PL' + str(PL)] = FT_Quicky_Base(backtest=bt,
                                                                       indicators=indicators,
                                                                       PL=PL,
@@ -37,4 +49,7 @@ def set_strategies(bt):
                                                                       FTdthresh=0.1,
                                                                       FTthresh=2.5,
                                                                       maxBars=1)
+    """
+
+
 

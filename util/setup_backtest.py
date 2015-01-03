@@ -12,7 +12,6 @@ def set_backtest_options(bt):
     bt.init_day = '2014-09-10 17:00:00'
     bt.final_day = '2014-11-30 16:59:59'
 
-    bt.optimization = True          # if indicators are the same across all strategies, set True
     bt.log_intrabar_data = False    # setting true can significantly slowdown backtesting
 
     bt.write_trade_data = False

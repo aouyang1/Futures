@@ -6,8 +6,8 @@ Futures Backtester is a tool to help quickly asses the viability of any trading 
 
 Tick level data were downloaded using Rithmic as the data provider through a third-party trading platform, NinjaTrader. Historical tick data up to around September of 2013 for Gold futures (GC), Crude Oil futures (CL), and 30-year Treasury Bonds futures (ZB) are currently stored in a MySQL database.
 
-![Puppy Playdate Demo] (figures/gui.png)
-![Puppy Playdate Demo] (figures/playback_chart.png)
+![fad] (figures/gui.png)
+![fad] (figures/playback_chart.png)
 
 ## Futures Algorithmic Development GUI 
 The Python GUI allows users to interactively set backtesting parameters such as instrument, range bar size, date range to test, and strategies to test through a crude editor. Each strategy should have a fixed Profit Target and fixed Stop Loss. Multiple strategies can be run at the same time, but must be specified through the editor. New strategies and/or indicators may be included with the backtester by adding additional classes to the strategy.py and indicator.py files. After each backtest, trade data will be written into a dropbox folder for further analysis in a similar format to the Ninjatrader trade data.

@@ -1,6 +1,6 @@
 # Futures Backtester
 ======================================
-## Algorithmic trading backtester using historical tick level data replayed through a chosen strategy.
+## Modular algorithmic trading backtester using historical tick level data replayed through various strategies.
 
 Futures Backtester is a tool to help quickly asses the viability of any trading strategy working off of Range bars, a price action candlestick formation. More information on Range Bars can be found here: [Investopedia](http://www.investopedia.com/articles/trading/10/range-bar-charts-different-view.asp)
 
@@ -8,6 +8,23 @@ Tick level data were downloaded using Rithmic as the data provider through a thi
 
 ## Futures Algorithmic Development GUI 
 The Python GUI allows users to interactively set backtesting parameters such as instrument, range bar size, date range to test, and strategies to test through a crude editor. Each strategy should have a fixed Profit Target and fixed Stop Loss. Multiple strategies can be run at the same time, but must be specified through the editor. New strategies and/or indicators may be included with the backtester by adding additional classes to the strategy.py and indicator.py files. After each backtest, trade data will be written into a dropbox folder for further analysis in a similar format to the Ninjatrader trade data.
+
+## Setting up Strategies and Indicators
+Multiple strategies can be tested at the same time to save time and allow one-to-one comparisons of the trade data. Care should be taken when specifying multiple strategies working off the same indicators with the same parameters. For example if 40 strategies are to be tested with various parameters such as ranging profit target from 10 ticks to 49 ticks but work off the same indicator with a lookback period of 15 bars, all the strategies should reference the same indicator instead of declaring the same indicator 40 times.
+Example:
+```
+indicators = {}
+indicators['FT'] = FisherTransform(bt, bt.range_bar.Close, 15)
+indicators['FTD'] = Diff(bt, indicators['FT'].val, 2)
+for PL in range(17, 25):
+    bt.strategies['FT_Quicky_Base_PL' + str(PL)] = FT_Quicky_Base(backtest=bt,
+                                                                  indicators=indicators,
+                                                                  PL=PL,
+                                                                  offset=3,
+                                                                  FTdthresh=0.1,
+                                                                  FTthresh=2.5,
+                                                                  maxBars=1)
+```
 
 ### MySQL Data Dtorage
 update_database_TICK.py - script to parse and place tick data for GC, CL, and ZB onto a mySQL database

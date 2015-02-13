@@ -29,7 +29,7 @@ for PL in range(17, 25):
                                                                   maxBars=1)
 ```
 
-### MySQL Data Dtorage
+### MySQL Data Storage
 update_database_TICK.py - script to parse and place tick data for GC, CL, and ZB onto a mySQL database
 update_database_TICK_norepeats.py - script to compress data set for repeated tick values
 

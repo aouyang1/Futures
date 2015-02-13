@@ -9,6 +9,10 @@ Tick level data were downloaded using Rithmic as the data provider through a thi
 ![fad] (figures/gui.png)
 ![fad] (figures/playback_chart.png)
 
+### MySQL Data Storage
+update_database_TICK.py - script to parse and place tick data for GC, CL, and ZB onto a mySQL database
+update_database_TICK_norepeats.py - script to compress data set for repeated tick values
+
 ## Futures Algorithmic Development GUI 
 The Python GUI allows users to interactively set backtesting parameters such as instrument, range bar size, date range to test, and strategies to test through a crude editor. Each strategy should have a fixed Profit Target and fixed Stop Loss. Multiple strategies can be run at the same time, but must be specified through the editor. New strategies and/or indicators may be included with the backtester by adding additional classes to the strategy.py and indicator.py files. After each backtest, trade data will be written into a dropbox folder for further analysis in a similar format to the Ninjatrader trade data.
 
@@ -32,9 +36,6 @@ for PL in range(17, 25):
                                                                   maxBars=1)
 ```
 
-### MySQL Data Storage
-update_database_TICK.py - script to parse and place tick data for GC, CL, and ZB onto a mySQL database
-update_database_TICK_norepeats.py - script to compress data set for repeated tick values
 
 ## Usage
 1. python fad.py

@@ -1,5 +1,6 @@
 # Futures Backtester
-======================================
+![Puppy Playdate Demo] (figures/gui.png)
+![Puppy Playdate Demo] (figures/playback_chart.png)
 ## Modular algorithmic trading backtester using historical tick level data replayed through various strategies.
 
 Futures Backtester is a tool to help quickly asses the viability of any trading strategy working off of Range bars, a price action candlestick formation. More information on Range Bars can be found here: [Investopedia](http://www.investopedia.com/articles/trading/10/range-bar-charts-different-view.asp)

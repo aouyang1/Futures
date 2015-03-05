@@ -28,10 +28,12 @@ class Order:
                 if backtest.daily_tick.curr_last() <= self.limit_price:
                     self.order_state = "FILLED"
                     strat.trades.curr.entry_time = backtest.daily_tick.curr_date()
+                    strat.trades.curr.entry_bar = backtest.range_bar.cnt
             elif self.order_action == "SELL":
                 if backtest.daily_tick.curr_last() >= self.limit_price:
                     self.order_state = "FILLED"
                     strat.trades.curr.entry_time = backtest.daily_tick.curr_date()
+                    strat.trades.curr.entry_bar = backtest.range_bar.cnt
 
         elif self.order_state == "FILLED":
             # looking for profit target to hit, stop loss to hit, or eof day
@@ -39,6 +41,7 @@ class Order:
             if self.order_action == "BUY":
                 if backtest.daily_tick.curr_last() >= self.profit_target:
                     strat.trades.curr.exit_time = backtest.daily_tick.curr_date()
+                    strat.trades.curr.exit_bar = backtest.range_bar.cnt
                     strat.trades.curr.exit_price = self.profit_target
                     strat.trades.curr.exit_name = 'Profit target'
                     self.calculate_profit(backtest, strat)
@@ -48,6 +51,7 @@ class Order:
 
                 elif backtest.daily_tick.curr_last() <= self.stop_loss:
                     strat.trades.curr.exit_time = backtest.daily_tick.curr_date()
+                    strat.trades.curr.exit_bar = backtest.range_bar.cnt
                     strat.trades.curr.exit_price = backtest.daily_tick.curr_last()
                     strat.trades.curr.exit_name = 'Stop loss'
                     self.calculate_profit(backtest, strat)
@@ -57,6 +61,7 @@ class Order:
 
                 elif curr_time.hour == 16 and curr_time.minute == 14 and 30 <= curr_time.second <= 59:
                     strat.trades.curr.exit_time = backtest.daily_tick.curr_date()
+                    strat.trades.curr.exit_bar = backtest.range_bar.cnt
                     strat.trades.curr.exit_price = backtest.daily_tick.curr_last()
                     strat.trades.curr.exit_name = 'Exit on close'
                     self.calculate_profit(backtest, strat)
@@ -67,6 +72,7 @@ class Order:
             elif self.order_action == "SELL":
                 if backtest.daily_tick.curr_last() <= self.profit_target:
                     strat.trades.curr.exit_time = backtest.daily_tick.curr_date()
+                    strat.trades.curr.exit_bar = backtest.range_bar.cnt
                     strat.trades.curr.exit_price = self.profit_target
                     strat.trades.curr.exit_name = 'Profit target'
                     self.calculate_profit(backtest, strat)
@@ -76,6 +82,7 @@ class Order:
 
                 elif backtest.daily_tick.curr_last() >= self.stop_loss:
                     strat.trades.curr.exit_time = backtest.daily_tick.curr_date()
+                    strat.trades.curr.exit_bar = backtest.range_bar.cnt
                     strat.trades.curr.exit_price = backtest.daily_tick.curr_last()
                     strat.trades.curr.exit_name = 'Stop loss'
                     self.calculate_profit(backtest, strat)
@@ -85,6 +92,7 @@ class Order:
 
                 elif curr_time.hour == 16 and curr_time.minute == 14 and 30 <= curr_time.second <= 59:
                     strat.trades.curr.exit_time = backtest.daily_tick.curr_date()
+                    strat.trades.curr.exit_bar = backtest.range_bar.cnt
                     strat.trades.curr.exit_price = backtest.daily_tick.curr_last()
                     strat.trades.curr.exit_name = 'Exit on close'
                     self.calculate_profit(backtest, strat)

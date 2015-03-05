@@ -14,6 +14,8 @@ class Trades:
         self.exit_price = []
         self.entry_time = []
         self.exit_time = []
+        self.entry_bar = []
+        self.exit_bar = []
         self.exit_name = []
         self.profit = []
         self.curr = CurrentTrade()
@@ -24,6 +26,8 @@ class Trades:
         self.exit_price.append(self.curr.exit_price)
         self.entry_time.append(self.curr.entry_time)
         self.exit_time.append(self.curr.exit_time)
+        self.entry_bar.append(self.curr.entry_bar)
+        self.exit_bar.append(self.curr.exit_bar)
         self.exit_name.append(self.curr.exit_name)
         self.profit.append(self.curr.profit)
 
@@ -71,6 +75,8 @@ class CurrentTrade:
         self.exit_price = None
         self.entry_time = None
         self.exit_time = None
+        self.entry_bar = None
+        self.exit_bar = None
         self.exit_name = None
         self.profit = None
 

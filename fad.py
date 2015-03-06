@@ -5,6 +5,7 @@ import sys
 
 # plotting import for candlestick
 import matplotlib.finance as mplfin
+import matplotlib.pyplot as plt
 
 # backtesting imports
 from util.statemachine import StateMachine
@@ -111,13 +112,38 @@ class DesignerMainWindow(QtGui.QMainWindow, Ui_MainWindow):
 				bar_start:bar_end]
 
 		# TODO: select trades that are present in the current plot window
-		"""
 		strat_name = self.bt.strategies.keys()
 		strat_name.sort()
 		for s in strat_name:
 			strat = self.bt.strategies[s]
-			strat.trades.entry_bar >= bar_start
-		"""
+			entry_bar = strat.trades.entry_bar
+			exit_bar = strat.trades.exit_bar
+			entry_price = strat.trades.entry_price
+			exit_price = strat.trades.exit_price
+			market_pos = strat.trades.market_pos
+
+			# use binary search for first trade and last trade index
+			trade_start = self.nearest_idx_gte(entry_bar,
+											   self.bt.range_bar.cnt - bar_end - 1)
+			trade_end = self.nearest_idx_gte(exit_bar,
+											 self.bt.range_bar.cnt - bar_start - 1)
+
+			if trade_start and not trade_end:
+				trade_end = trade_start + 1
+
+			for idx in range(trade_start, trade_end):
+				bar_x = [entry_bar[idx] - (self.bt.range_bar.cnt - bar_start) + self.bars_in_view,
+						 exit_bar[idx] - (self.bt.range_bar.cnt - bar_start) + self.bars_in_view]
+				bar_y = [entry_price[idx], exit_price[idx]]
+				if market_pos[idx] == "LONG":
+					self.mpl.canvas.ax.plot(bar_x, bar_y, color='g',
+											linestyle='--',
+											linewidth=2.0)
+				else:
+					self.mpl.canvas.ax.plot(bar_x, bar_y, color='r',
+											linestyle='--',
+											linewidth=2.0)
+
 
 		opens.reverse()
 		closes.reverse()
@@ -202,6 +228,34 @@ class DesignerMainWindow(QtGui.QMainWindow, Ui_MainWindow):
 			self.bar_len - self.bars_in_view)
 
 		self.plot_bars()
+
+
+	def nearest_idx_gte(self, a, val):
+		"""
+		:param a: list of sorted floats
+		:param val: value to find in a
+		:return: index in 'a' where the value is greater than or equal
+		to val
+		"""
+		if not a:
+			return
+
+		start = 0
+		end = len(a)-1
+
+		while end - start > 1:
+			midpoint = (end-start)/2 + start
+			if a[midpoint] == val:
+				return midpoint
+			elif a[midpoint] < val:
+				start = midpoint
+			else:
+				end = midpoint
+
+		if a[end] < val:
+			return
+		else:
+			return end
 
 
 if __name__ == "__main__":

@@ -97,21 +97,53 @@ class DesignerMainWindow(QtGui.QMainWindow, Ui_MainWindow):
 	def plot_bars(self, bar_start=0):
 
 		self.mpl.canvas.ax.clear()
+		self.mpl.canvas.ax2.clear()
 
 		bar_end = min(bar_start + self.bars_in_view, self.bar_len)
 
-		opens = self.bt.range_bar.Open[
-				bar_start:bar_end]
-		closes = self.bt.range_bar.Close[
-				 bar_start:bar_end]
-		highs = self.bt.range_bar.High[
-				bar_start:bar_end]
-		lows = self.bt.range_bar.Low[
-			   bar_start:bar_end]
-		dates = self.bt.range_bar.CloseTime[
-				bar_start:bar_end]
+		# plot range bars
+		opens = self.bt.range_bar.Open[bar_start:bar_end]
+		closes = self.bt.range_bar.Close[bar_start:bar_end]
+		highs = self.bt.range_bar.High[bar_start:bar_end]
+		lows = self.bt.range_bar.Low[bar_start:bar_end]
+		dates = self.bt.range_bar.CloseTime[bar_start:bar_end]
 
-		# TODO: select trades that are present in the current plot window
+		opens.reverse()
+		closes.reverse()
+		highs.reverse()
+		lows.reverse()
+		dates.reverse()
+
+		mplfin.candlestick2(self.mpl.canvas.ax, opens=opens,
+							closes=closes,
+							highs=highs,
+							lows=lows,
+							width=0.75,
+							colorup=u'g')
+
+		# plot indicators
+		tableau20 = [(31, 119, 180), (174, 199, 232), (255, 127, 14), (255, 187, 120),
+					 (44, 160, 44), (152, 223, 138), (214, 39, 40), (255, 152, 150),
+					 (148, 103, 189), (197, 176, 213), (140, 86, 75), (196, 156, 148),
+					 (227, 119, 194), (247, 182, 210), (127, 127, 127), (199, 199, 199),
+					 (188, 189, 34), (219, 219, 141), (23, 190, 207), (158, 218, 229)]
+
+		# Scale the RGB values to the [0, 1] range, which is the format matplotlib accepts.
+		for i in range(len(tableau20)):
+			r, g, b = tableau20[i]
+			tableau20[i] = (r / 255., g / 255., b / 255.)
+
+		first_strat = self.bt.strategies[self.bt.strategies.keys()[0]]
+		for ind, name in enumerate(first_strat.indicators):
+			indicator_val = first_strat.indicators[name].val[bar_start:bar_end]
+			indicator_val.reverse()
+			self.mpl.canvas.ax2.bar(range(self.bars_in_view),
+									 indicator_val,
+									 width=0.50,
+									 color=tableau20[(ind*5)%len(tableau20)])
+
+
+		# plots trades from all strategies onto candlesticks
 		strat_name = self.bt.strategies.keys()
 		strat_name.sort()
 		for s in strat_name:
@@ -145,18 +177,6 @@ class DesignerMainWindow(QtGui.QMainWindow, Ui_MainWindow):
 											linewidth=2.0)
 
 
-		opens.reverse()
-		closes.reverse()
-		highs.reverse()
-		lows.reverse()
-		dates.reverse()
-
-		mplfin.candlestick2(self.mpl.canvas.ax, opens=opens,
-							closes=closes,
-							highs=highs,
-							lows=lows,
-							width=0.75,
-							colorup=u'g')
 
 		self.mpl.canvas.ax.get_yaxis().grid(True)
 		self.mpl.canvas.ax.get_yaxis().get_major_formatter().set_useOffset(
@@ -176,6 +196,12 @@ class DesignerMainWindow(QtGui.QMainWindow, Ui_MainWindow):
 		self.mpl.canvas.ax.set_xticklabels(time_list)
 		self.mpl.canvas.ax.get_xaxis().grid(True)
 		self.mpl.canvas.ax.set_xlim(xmin=-1, xmax=self.bars_in_view)
+
+		self.mpl.canvas.ax2.get_yaxis().grid(True)
+		self.mpl.canvas.ax2.get_yaxis().get_major_formatter().set_useOffset(
+			False)
+		self.mpl.canvas.ax2.get_xaxis().grid(True)
+
 		self.mpl.canvas.draw()
 
 	def run_backtest(self):

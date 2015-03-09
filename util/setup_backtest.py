@@ -24,6 +24,7 @@ def set_backtest_options(bt):
 # Setup number of strategies and indicators
 def set_strategies(bt):
 
+    """
     # FT_QUICKY_BASE for GC
     indicators = {}
     indicators['FT'] = FisherTransform(bt, bt.range_bar.Close, 15)
@@ -37,7 +38,7 @@ def set_strategies(bt):
                                                                       maxBars=1)
     """
     # FT_QUICKY_BASE for GC
-    for PL in range(17, 25):
+    for PL in range(11, 41):
         indicators = {}
         indicators['FT'] = FisherTransform(bt, bt.range_bar.Close, 15)
         indicators['FTD'] = Diff(bt, indicators['FT'].val, 2)
@@ -48,7 +49,7 @@ def set_strategies(bt):
                                                                       FTdthresh=0.1,
                                                                       FTthresh=2.5,
                                                                       maxBars=1)
-    """
+
 
 
 

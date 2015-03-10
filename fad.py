@@ -31,21 +31,41 @@ class DesignerMainWindow(QtGui.QMainWindow, Ui_MainWindow):
 
 		self.tabWidget.setTabEnabled(1, False)
 
+		QtCore.QObject.connect(self.checkBox_log_intrabar_data,
+							   QtCore.SIGNAL("stateChanged(int)"),
+							   self.log_intrabar_data_callback)
+
+		QtCore.QObject.connect(self.checkBox_write_trade_data,
+							   QtCore.SIGNAL("stateChanged(int)"),
+							   self.write_trade_data_callback)
+
+		QtCore.QObject.connect(self.checkBox_write_bar_data,
+							   QtCore.SIGNAL("stateChanged(int)"),
+							   self.write_bar_data_callback)
+
 		QtCore.QObject.connect(self.pushButton_run_backtest,
-							   QtCore.SIGNAL("clicked()"), self.run_backtest)
+							   QtCore.SIGNAL("clicked()"),
+							   self.run_backtest_callback)
+
 		QtCore.QObject.connect(self.horizontalScrollBar_range_bar,
 							   QtCore.SIGNAL("valueChanged(int)"),
-							   self.scroll_bars)
+							   self.scroll_bars_callback)
+
 		QtCore.QObject.connect(self.horizontalSlider_bar_zoom,
 							   QtCore.SIGNAL("valueChanged(int)"),
-							   self.zoom_bars)
+							   self.zoom_bars_callback)
+
 		QtCore.QObject.connect(self.pushButton_save_setup,
-							   QtCore.SIGNAL("clicked()"), self.save_setup)
+							   QtCore.SIGNAL("clicked()"),
+							   self.save_setup_callback)
+
 		QtCore.QObject.connect(self.textEdit_setup_backtest,
 							   QtCore.SIGNAL("textChanged()"),
-							   self.check_file_changed)
+							   self.check_file_changed_callback)
+
 		QtCore.QObject.connect(self.pushButton_revert_setup,
-							   QtCore.SIGNAL("clicked()"), self.revert_setup)
+							   QtCore.SIGNAL("clicked()"),
+							   self.revert_setup_callback)
 
 		self.bt = Backtest(self)
 		self.min_bar_lookback = 50
@@ -53,27 +73,59 @@ class DesignerMainWindow(QtGui.QMainWindow, Ui_MainWindow):
 		self.zoom = 0
 		self.bars_in_view = 50
 
-	def revert_setup(self):
+	def write_bar_data_callback(self):
+		self.bt.write_bar_data = self.checkBox_write_bar_data.isChecked()
+		if self.bt.write_bar_data:
+			fname = QtGui.QFileDialog.getSaveFileName(None,
+													  "Save file...",
+            										  self.bt.bar_data_root,
+													  filter="CSV Files (*.csv)")
+			if fname:
+				self.bt.bar_data_root = str(fname)
+				if self.bt.bar_data_root.split(".")[-1] != "csv":
+					self.bt.bar_data_root += ".csv"
+
+		print "Path to csv for range bars: {}".format(self.bt.bar_data_root)
+
+	def write_trade_data_callback(self):
+		self.bt.write_trade_data = self.checkBox_write_trade_data.isChecked()
+		if self.bt.write_trade_data:
+			fname = QtGui.QFileDialog.getSaveFileName(None,
+													  "Save file...",
+            										  self.bt.trade_data_root,
+													  filter="CSV Files (*.csv)")
+			if fname:
+				self.bt.trade_data_root = str(fname)
+				if self.bt.trade_data_root.split(".")[-1] != "csv":
+					self.bt.trade_data_root += ".csv"
+
+		print "Path to csv for trades: {}".format(self.bt.trade_data_root)
+
+	def log_intrabar_data_callback(self):
+		# setting true can significantly slowdown backtesting
+		self.bt.log_intrabar_data = self.checkBox_log_intrabar_data.isChecked()
+
+	def revert_setup_callback(self):
 		curr_text = str(self.textEdit_setup_backtest.toPlainText())
 		if curr_text != self.text:
 			self.textEdit_setup_backtest.setText(self.text)
 			self.label_setup_backtest.setText("setup_backtest.py")
 
-	def save_setup(self):
+	def save_setup_callback(self):
 		curr_text = str(self.textEdit_setup_backtest.toPlainText())
 		if curr_text != self.text:
 			open('util/setup_backtest.py', 'w').write(curr_text)
 			self.label_setup_backtest.setText("setup_backtest.py")
 			self.text = curr_text
 
-	def check_file_changed(self):
+	def check_file_changed_callback(self):
 		curr_text = str(self.textEdit_setup_backtest.toPlainText())
 		if curr_text == self.text:
 			self.label_setup_backtest.setText("setup_backtest.py")
 		else:
 			self.label_setup_backtest.setText("setup_backtest.py*")
 
-	def zoom_bars(self):
+	def zoom_bars_callback(self):
 		val = self.horizontalSlider_bar_zoom.value()
 
 		self.zoom = val / 10.0
@@ -90,9 +142,60 @@ class DesignerMainWindow(QtGui.QMainWindow, Ui_MainWindow):
 
 		self.scroll_bars()
 
-	def scroll_bars(self):
+	def scroll_bars_callback(self):
 		bar_start = self.horizontalScrollBar_range_bar.maximum() - self.horizontalScrollBar_range_bar.value()
 		self.plot_bars(bar_start=bar_start)
+
+	def run_backtest_callback(self):
+
+		m = StateMachine()
+		t = Transitions()  # next state functions for state machine
+
+		m.add_state("initialize", t.initialize_transitions)
+		m.add_state("load_daily_data", t.load_daily_data_transitions)
+		m.add_state("check_orders", t.check_orders_transitions)
+		m.add_state("update_range_bar", t.update_range_bar_transitions)
+		m.add_state("compute_indicators", t.compute_indicators_transitions)
+		m.add_state("check_strategy", t.check_strategy_transitions)
+		m.add_state("check_range_bar_finished",
+					t.check_range_bar_finished_transitions)
+		m.add_state("show_results", t.write_results_transitions)
+		m.add_state("finished", None, end_state=1)
+
+		m.set_start("initialize")
+
+		self.bt.instr_name = str(self.comboBox_instrument.currentText())
+		self.bt.RANGE = int(self.spinBox_range.value())
+
+		self.bt.init_day = str(self.dateEdit_start_date.date().toString(
+			"yyyy-MM-dd")) + " 17:00:00"
+		self.bt.final_day = str(
+			self.dateEdit_end_date.date().toString("yyyy-MM-dd")) + " 16:59:59"
+
+		#self.bt.log_intrabar_data = self.checkBox_log_intrabar_data.isChecked()  # setting true can significantly slowdown backtesting
+		#self.bt.write_trade_data = self.checkBox_write_trade_data.isChecked()
+		#self.bt.trade_data_root = '/home/aouyang1/Dropbox/Futures Trading/FT_QUICKY_v3/BASE (copy)'
+
+		#self.bt.write_bar_data = self.checkBox_write_bar_data.isChecked()
+		#self.bt.bar_data_root = '/home/aouyang1/Dropbox/Futures Trading/Backtester/FT_QUICKY_GC_BASE'
+
+		cProfile.runctx('m.run(self.bt)', globals(), locals(),
+						'backtest_profile')
+		self.bar_len = self.bt.range_bar.cnt
+		self.tabWidget.setTabEnabled(1, True)
+
+		print " "
+
+		p = pstats.Stats('backtest_profile')
+		p.strip_dirs().sort_stats('cumulative').print_stats('transitions')
+
+		self.horizontalScrollBar_range_bar.setMaximum(
+			self.bar_len - self.bars_in_view)
+		self.horizontalScrollBar_range_bar.setPageStep(self.bars_in_view)
+		self.horizontalScrollBar_range_bar.setValue(
+			self.bar_len - self.bars_in_view)
+
+		self.plot_bars()
 
 	def plot_bars(self, bar_start=0):
 
@@ -203,58 +306,6 @@ class DesignerMainWindow(QtGui.QMainWindow, Ui_MainWindow):
 		self.mpl.canvas.ax2.get_xaxis().grid(True)
 
 		self.mpl.canvas.draw()
-
-	def run_backtest(self):
-
-		m = StateMachine()
-		t = Transitions()  # next state functions for state machine
-
-		m.add_state("initialize", t.initialize_transitions)
-		m.add_state("load_daily_data", t.load_daily_data_transitions)
-		m.add_state("check_orders", t.check_orders_transitions)
-		m.add_state("update_range_bar", t.update_range_bar_transitions)
-		m.add_state("compute_indicators", t.compute_indicators_transitions)
-		m.add_state("check_strategy", t.check_strategy_transitions)
-		m.add_state("check_range_bar_finished",
-					t.check_range_bar_finished_transitions)
-		m.add_state("show_results", t.write_results_transitions)
-		m.add_state("finished", None, end_state=1)
-
-		m.set_start("initialize")
-
-		self.bt.instr_name = str(self.comboBox_instrument.currentText())
-		self.bt.RANGE = int(self.spinBox_range.value())
-
-		self.bt.init_day = str(self.dateEdit_start_date.date().toString(
-			"yyyy-MM-dd")) + " 17:00:00"
-		self.bt.final_day = str(
-			self.dateEdit_end_date.date().toString("yyyy-MM-dd")) + " 16:59:59"
-
-		self.bt.log_intrabar_data = self.checkBox_log_intrabar_data.isChecked()  # setting true can significantly slowdown backtesting
-		self.bt.write_trade_data = self.checkBox_write_trade_data.isChecked()
-		self.bt.trade_data_root = '/home/aouyang1/Dropbox/Futures Trading/FT_QUICKY_v3/BASE (copy)'
-
-		self.bt.write_bar_data = self.checkBox_write_bar_data.isChecked()
-		self.bt.bar_data_root = '/home/aouyang1/Dropbox/Futures Trading/Backtester/FT_QUICKY_GC_BASE'
-
-		cProfile.runctx('m.run(self.bt)', globals(), locals(),
-						'backtest_profile')
-		self.bar_len = self.bt.range_bar.cnt
-		self.tabWidget.setTabEnabled(1, True)
-
-		print " "
-
-		p = pstats.Stats('backtest_profile')
-		p.strip_dirs().sort_stats('cumulative').print_stats('transitions')
-
-		self.horizontalScrollBar_range_bar.setMaximum(
-			self.bar_len - self.bars_in_view)
-		self.horizontalScrollBar_range_bar.setPageStep(self.bars_in_view)
-		self.horizontalScrollBar_range_bar.setValue(
-			self.bar_len - self.bars_in_view)
-
-		self.plot_bars()
-
 
 	def nearest_idx_gte(self, a, val):
 		"""

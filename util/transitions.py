@@ -240,6 +240,7 @@ class Transitions:
             if bt.write_trade_data:
                 Transitions.write_results_as_csv(bt, s, strat)
 
+        print "Write range bars: {}".format(bt.write_bar_data)
         if bt.write_bar_data:
             Transitions.write_bar_as_csv(bt)
 
@@ -291,39 +292,46 @@ class Transitions:
         df['Profit'] = strat.trades.trade_log['profit']
         df['Cum. profit'] = strat.trades.trade_log['cum_prof']
 
-        folder_name = backtest.trade_data_root + '/PL' + re.findall(r'\d+', strat_name)[0] + '/'
+        path_components = backtest.trade_data_root.split("/")
+        file_name = path_components[-1]
+        folder_root = "/" + "/".join(path_components[:-1])
+
+        folder_name = folder_root + '/PL' + re.findall(r'\d+', strat_name)[0] + '/'
 
         if not os.path.isdir(folder_name):
             os.mkdir(folder_name)
 
-        pathname = folder_name + strat_name + '.csv'
+        pathname = folder_name + file_name
 
         df.to_csv(path_or_buf=pathname, index=False)
 
     @staticmethod
     def write_bar_as_csv(bt):
-        range_bar_df = DataFrame({'Date': bt.range_bar.CloseTime,
-                                  'H': bt.range_bar.High,
-                                  'L': bt.range_bar.Low,
-                                  'O': bt.range_bar.Open,
-                                  'C': bt.range_bar.Close}, columns=['Date', 'H', 'L', 'O', 'C'])
+
+        CloseTime = bt.range_bar.CloseTime[:]
+        High = bt.range_bar.High[:]
+        Low = bt.range_bar.Low[:]
+        Open = bt.range_bar.Open[:]
+        Close = bt.range_bar.Close[:]
+
+        CloseTime.reverse()
+        High.reverse()
+        Low.reverse()
+        Open.reverse()
+        Close.reverse()
+
+        range_bar_df = DataFrame({'Date': CloseTime,
+                                  'H': High,
+                                  'L': Low,
+                                  'O': Open,
+                                  'C': Close}, columns=['Date', 'H', 'L', 'O', 'C'])
 
         strat = bt.strategies[bt.strategies.keys()[0]]
-        #print len(bt.range_bar.Close)
-        #print bt.range_bar.CloseTime[0:5]
-        #print bt.range_bar.CloseTime[-1:-6]
+
         for indicator_name in strat.indicators:
-            #print len(strat.indicators[indicator_name].val)
-            range_bar_df[indicator_name] = strat.indicators[indicator_name].val
+            curr_indicator = strat.indicators[indicator_name].val
+            curr_indicator.reverse()
+            range_bar_df[indicator_name] = curr_indicator
 
-        """
-        print range_bar_df.head(n=3)
-        print range_bar_df.tail(n=3)
-
-        if not os.path.isdir(bt.bar_data_root):
-            os.mkdir(bt.bar_data_root)
-
-        pathname = bt.bar_data_root + bt.strategies.keys()[0] + '.csv'
-
-        range_bar_df.to_csv(path_or_buf=pathname, index=False)
-        """
+        print "Writing to: {}".format(bt.bar_data_root)
+        range_bar_df.to_csv(path_or_buf=bt.bar_data_root, index=False)

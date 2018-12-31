@@ -6,8 +6,8 @@ Futures Backtester is a tool to help quickly asses the viability of any trading 
 
 Tick level data were downloaded using Rithmic as the data provider through a third-party trading platform, NinjaTrader. Historical tick data up to around September of 2013 for Gold futures (GC), Crude Oil futures (CL), and 30-year Treasury Bonds futures (ZB) are currently stored in a MySQL database.
 
-![fad] (figures/gui.png)
-![fad] (figures/playback_chart.png)
+![fad](https://github.com/aouyang1/Futures/blob/master/figures/gui.png)
+![fad](https://github.com/aouyang1/Futures/blob/master/figures/playback_chart.png)
 
 ### MySQL Data Storage
 update_database_TICK.py - script to parse and place tick data for GC, CL, and ZB onto a mySQL database
